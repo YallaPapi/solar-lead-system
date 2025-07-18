@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate dynamic calendar link based on client company name
-    const companySlug = createCompanySlug(client_company_name);
+    const companySlug = createCompanySlug(organization_name);
     const dynamicCalendarLink = `https://calendly.com/${companySlug}`;
 
     // Create the assistant
