@@ -187,10 +187,10 @@ FAQ:
       tools: [{ type: "code_interpreter" }]
     });
 
-    // FIXED: Use the correct domain for demo URL
-    const host = request.headers.get('host') || 'prototype-buildercd-lh7rovzkm-stuartoden-2590s-projects.vercel.app';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const demoUrl = `${protocol}://${host}/${companySlug}`;
+  // FIXED: Use the custom domain
+const host = request.headers.get('host') || 'solarbookers.com';
+const protocol = 'https';
+const demoUrl = `${protocol}://${host}/${companySlug}`;
 
     // Store the assistant mapping for this company
     try {
