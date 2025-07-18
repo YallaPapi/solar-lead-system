@@ -8,7 +8,6 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   console.log('=== CHAT API CALLED ===');
   console.log('OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
-  console.log('OpenAI API Key first 10 chars:', process.env.OPENAI_API_KEY?.substring(0, 10));
   
   try {
     const body = await request.json();
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
     });
     console.log('Run created:', run.id, 'Status:', run.status);
 
-    // Wait for completion with better logging
+    // Wait for completion
     let runStatus = run;
     let attempts = 0;
     const maxAttempts = 30;
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
       console.log('Messages retrieved, count:', messages.data.length);
       
       const latestMessage = messages.data[0];
-      console.log('Latest message:', latestMessage);
+      console.log('Latest message role:', latestMessage?.role);
       
       if (latestMessage && latestMessage.role === 'assistant') {
         const content = latestMessage.content[0];
@@ -95,7 +94,7 @@ export async function POST(request: NextRequest) {
           );
         }
       } else {
-        console.error('Latest message is not from assistant:', latestMessage);
+        console.error('Latest message is not from assistant');
         return NextResponse.json(
           { error: 'No assistant response found' },
           { status: 500 }
@@ -107,45 +106,28 @@ export async function POST(request: NextRequest) {
         { error: 'Assistant run failed', details: runStatus.last_error },
         { status: 500 }
       );
-    } else if (runStatus.status === 'requires_action') {
-      console.error('Run requires action:', runStatus.required_action);
-      return NextResponse.json(
-        { error: 'Assistant requires action (not supported)' },
-        { status: 500 }
-      );
     } else {
       console.error('Unexpected run status:', runStatus.status);
       return NextResponse.json(
-        { error: `Assistant run timed out or failed. Status: ${runStatus.status}` },
+        { error: `Assistant run failed. Status: ${runStatus.status}` },
         { status: 500 }
       );
     }
 
   } catch (error) {
     console.error('=== CHAT API ERROR ===');
-    console.error('Error type:', error.constructor.name);
     console.error('Error message:', error.message);
     
     if (error instanceof OpenAI.APIError) {
-      console.error('OpenAI API Error details:', {
-        status: error.status,
-        code: error.code,
-        type: error.type,
-        message: error.message
-      });
-      
+      console.error('OpenAI API Error:', error.message);
       return NextResponse.json(
         { 
           error: 'OpenAI API Error',
-          details: error.message,
-          status: error.status,
-          code: error.code 
+          details: error.message
         },
         { status: error.status || 500 }
       );
     }
-    
-    console.error('Full error object:', error);
     
     return NextResponse.json(
       { error: 'Chat failed', details: error.message },
