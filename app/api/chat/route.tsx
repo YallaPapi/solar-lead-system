@@ -6,10 +6,20 @@ const openai = new OpenAI({
 });
 
 export async function POST(request: NextRequest) {
+  console.log('=== CHAT API CALLED ===');
+  console.log('OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
+  console.log('OpenAI API Key first 10 chars:', process.env.OPENAI_API_KEY?.substring(0, 10));
+  
   try {
-    const { assistantId, message, threadId } = await request.json();
+    const body = await request.json();
+    console.log('Request body:', body);
+    
+    const { assistantId, message, threadId } = body;
+
+    console.log('Extracted values:', { assistantId, message, threadId });
 
     if (!assistantId || !message) {
+      console.error('Missing required fields:', { assistantId: !!assistantId, message: !!message });
       return NextResponse.json(
         { error: 'Assistant ID and message are required' },
         { status: 400 }
@@ -19,56 +29,126 @@ export async function POST(request: NextRequest) {
     // Create or use existing thread
     let currentThreadId = threadId;
     if (!currentThreadId) {
+      console.log('Creating new thread...');
       const thread = await openai.beta.threads.create();
       currentThreadId = thread.id;
+      console.log('Created thread:', currentThreadId);
+    } else {
+      console.log('Using existing thread:', currentThreadId);
     }
 
     // Add user message to thread
+    console.log('Adding user message to thread...');
     await openai.beta.threads.messages.create(currentThreadId, {
       role: 'user',
       content: message
     });
+    console.log('Message added successfully');
 
     // Create and run the assistant
+    console.log('Creating run with assistant:', assistantId);
     const run = await openai.beta.threads.runs.create(currentThreadId, {
       assistant_id: assistantId
     });
+    console.log('Run created:', run.id, 'Status:', run.status);
 
-    // Wait for completion
-    let runStatus = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
+    // Wait for completion with better logging
+    let runStatus = run;
     let attempts = 0;
+    const maxAttempts = 30;
     
-    while ((runStatus.status === 'queued' || runStatus.status === 'in_progress') && attempts < 30) {
+    while ((runStatus.status === 'queued' || runStatus.status === 'in_progress') && attempts < maxAttempts) {
+      console.log(`Attempt ${attempts + 1}: Run status is ${runStatus.status}, waiting...`);
       await new Promise(resolve => setTimeout(resolve, 1000));
       runStatus = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
       attempts++;
     }
 
+    console.log(`Final run status after ${attempts} attempts:`, runStatus.status);
+
     if (runStatus.status === 'completed') {
+      console.log('Run completed successfully, fetching messages...');
       const messages = await openai.beta.threads.messages.list(currentThreadId);
+      console.log('Messages retrieved, count:', messages.data.length);
+      
       const latestMessage = messages.data[0];
+      console.log('Latest message:', latestMessage);
       
       if (latestMessage && latestMessage.role === 'assistant') {
         const content = latestMessage.content[0];
+        console.log('Message content type:', content?.type);
+        
         if (content && content.type === 'text') {
+          const response = content.text.value;
+          console.log('Assistant response:', response);
+          
           return NextResponse.json({
             success: true,
-            response: content.text.value,
+            response: response,
             threadId: currentThreadId
           });
+        } else {
+          console.error('Content is not text type:', content);
+          return NextResponse.json(
+            { error: 'Assistant response is not text' },
+            { status: 500 }
+          );
         }
+      } else {
+        console.error('Latest message is not from assistant:', latestMessage);
+        return NextResponse.json(
+          { error: 'No assistant response found' },
+          { status: 500 }
+        );
       }
+    } else if (runStatus.status === 'failed') {
+      console.error('Run failed:', runStatus.last_error);
+      return NextResponse.json(
+        { error: 'Assistant run failed', details: runStatus.last_error },
+        { status: 500 }
+      );
+    } else if (runStatus.status === 'requires_action') {
+      console.error('Run requires action:', runStatus.required_action);
+      return NextResponse.json(
+        { error: 'Assistant requires action (not supported)' },
+        { status: 500 }
+      );
+    } else {
+      console.error('Unexpected run status:', runStatus.status);
+      return NextResponse.json(
+        { error: `Assistant run timed out or failed. Status: ${runStatus.status}` },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(
-      { error: 'Assistant run failed' },
-      { status: 500 }
-    );
-
   } catch (error) {
-    console.error('Chat error:', error);
+    console.error('=== CHAT API ERROR ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    
+    if (error instanceof OpenAI.APIError) {
+      console.error('OpenAI API Error details:', {
+        status: error.status,
+        code: error.code,
+        type: error.type,
+        message: error.message
+      });
+      
+      return NextResponse.json(
+        { 
+          error: 'OpenAI API Error',
+          details: error.message,
+          status: error.status,
+          code: error.code 
+        },
+        { status: error.status || 500 }
+      );
+    }
+    
+    console.error('Full error object:', error);
+    
     return NextResponse.json(
-      { error: 'Chat failed' },
+      { error: 'Chat failed', details: error.message },
       { status: 500 }
     );
   }
