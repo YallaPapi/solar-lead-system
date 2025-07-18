@@ -36,8 +36,15 @@ export default function CompanyDemoPage() {
         
         setAssistantId(data.assistantId);
         
-        // Start the conversation automatically with the opening message
-        await startConversation(data.assistantId);
+        // Start with opening message
+        const openingMessage: Message = {
+          id: 'opening',
+          text: `It's Sarah from Solar Bookers here. Is this the same person that got a solar quote from us in the last couple of months?`,
+          sender: 'assistant',
+          timestamp: new Date(),
+        };
+        setMessages([openingMessage]);
+        
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load demo');
         console.error('Initialization error:', err);
@@ -50,38 +57,6 @@ export default function CompanyDemoPage() {
       initializeDemo();
     }
   }, [companySlug]);
-
-  const startConversation = async (assistantIdToUse: string) => {
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'START_CONVERSATION', // This should trigger the opening message
-          assistantId: assistantIdToUse,
-          threadId: null // Start new thread
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to start conversation');
-
-      const data = await response.json();
-      
-      // Add the assistant's opening message
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
-        text: data.response,
-        sender: 'assistant',
-        timestamp: new Date(),
-      };
-      
-      setMessages([assistantMessage]);
-      setThreadId(data.threadId);
-    } catch (err) {
-      console.error('Start conversation error:', err);
-      // If auto-start fails, just show empty chat - user can type first
-    }
-  };
 
   const sendMessage = async () => {
     if (!inputText.trim() || !assistantId || isLoading) return;
@@ -123,10 +98,9 @@ export default function CompanyDemoPage() {
       setThreadId(data.threadId);
     } catch (err) {
       console.error('Send message error:', err);
-      // Add error message to chat
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Sorry, there was an error sending your message. Please try again.',
+        text: 'Sorry, there was an error. Please try again.',
         sender: 'assistant',
         timestamp: new Date(),
       };
@@ -146,13 +120,13 @@ export default function CompanyDemoPage() {
   // Loading state
   if (initializing) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <h1 className="text-xl font-medium text-white mb-2">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <h1 className="text-xl font-medium text-gray-800 mb-2 text-center">
             Loading {companySlug.replace(/-/g, ' ')} Demo...
           </h1>
-          <p className="text-gray-400 text-sm">Setting up your personalized solar consultation</p>
+          <p className="text-gray-600 text-sm text-center">Setting up your personalized consultation</p>
         </div>
       </div>
     );
@@ -161,86 +135,59 @@ export default function CompanyDemoPage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center max-w-sm mx-4">
-          <div className="text-red-500 text-4xl mb-4">⚠️</div>
-          <h1 className="text-xl font-semibold text-white mb-4">Demo Not Found</h1>
-          <p className="text-gray-400 mb-6 text-sm">{error}</p>
-          <div className="space-y-2 text-xs text-gray-500">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-4">
+          <div className="text-red-500 text-4xl mb-4 text-center">⚠️</div>
+          <h1 className="text-xl font-semibold text-gray-800 mb-4 text-center">Demo Not Found</h1>
+          <p className="text-gray-600 mb-6 text-sm text-center">{error}</p>
+          <div className="space-y-2 text-xs text-gray-500 text-center">
             <p><strong>Company:</strong> {companySlug.replace(/-/g, ' ')}</p>
-            <p><strong>URL:</strong> solarbookers.com/{companySlug}</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // iPhone-style SMS Demo Interface
-  return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      {/* iPhone Container */}
-      <div className="w-full max-w-sm bg-black rounded-3xl shadow-2xl border border-gray-800 overflow-hidden">
-        
-        {/* iPhone Status Bar */}
-        <div className="bg-black px-6 py-2 flex justify-between items-center text-white text-sm">
-          <div className="flex items-center space-x-1">
-            <div className="w-4 h-2 bg-white rounded-sm"></div>
-            <div className="w-1 h-1 bg-white rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
-          </div>
-          <div className="text-center font-medium">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-          <div className="flex items-center space-x-1">
-            <div className="text-xs">100%</div>
-            <div className="w-6 h-3 border border-white rounded-sm">
-              <div className="w-full h-full bg-green-500 rounded-sm"></div>
-            </div>
-          </div>
-        </div>
+  // Clean SMS Interface
+  const companyName = companySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-        {/* SMS Header */}
-        <div className="bg-gray-900 px-4 py-3 border-b border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-semibold">S</span>
-              </div>
-              <div>
-                <h1 className="text-white text-base font-medium">
-                  {companySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </h1>
-                <p className="text-gray-400 text-xs">Active now</p>
-              </div>
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+        
+        {/* Header */}
+        <div className="bg-blue-500 text-white px-6 py-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+              <span className="text-white font-semibold">S</span>
             </div>
-            <div className="text-blue-400 text-sm">Details</div>
+            <div>
+              <h1 className="font-semibold text-lg">{companyName}</h1>
+              <p className="text-blue-100 text-sm">Solar Consultation</p>
+            </div>
           </div>
         </div>
 
         {/* Messages Container */}
-        <div className="bg-black h-96 flex flex-col">
+        <div className="h-96 flex flex-col bg-gray-50">
           {/* Messages */}
-          <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-            {messages.length === 0 && !isLoading && (
-              <div className="text-center text-gray-500 py-8 text-sm">
-                <p>Send a message to start the demo...</p>
-              </div>
-            )}
-            
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs px-3 py-2 rounded-2xl ${
+                  className={`max-w-xs px-4 py-2 rounded-2xl ${
                     message.sender === 'user'
-                      ? 'bg-blue-500 text-white rounded-br-md'
-                      : 'bg-gray-700 text-white rounded-bl-md'
+                      ? 'bg-blue-500 text-white rounded-br-sm'
+                      : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm'
                   }`}
                 >
                   <p className="text-sm leading-relaxed">{message.text}</p>
-                  <p className="text-xs opacity-60 mt-1">
+                  <p className={`text-xs mt-1 ${
+                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
                     {message.timestamp.toLocaleTimeString([], { 
                       hour: '2-digit', 
                       minute: '2-digit' 
@@ -252,7 +199,7 @@ export default function CompanyDemoPage() {
             
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-700 text-white max-w-xs px-3 py-2 rounded-2xl rounded-bl-md">
+                <div className="bg-white text-gray-800 border border-gray-200 max-w-xs px-4 py-2 rounded-2xl rounded-bl-sm">
                   <div className="flex items-center space-x-1">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
@@ -266,23 +213,23 @@ export default function CompanyDemoPage() {
           </div>
 
           {/* Input Area */}
-          <div className="p-4 border-t border-gray-700">
-            <div className="flex items-center space-x-3 bg-gray-800 rounded-full px-4 py-2">
+          <div className="p-4 bg-white border-t border-gray-200">
+            <div className="flex items-center space-x-3">
               <input
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="iMessage"
+                placeholder="Type your message..."
                 disabled={isLoading}
-                className="flex-1 bg-transparent text-white placeholder-gray-400 text-sm focus:outline-none disabled:opacity-50"
+                className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
               />
               <button
                 onClick={sendMessage}
                 disabled={!inputText.trim() || isLoading}
-                className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>

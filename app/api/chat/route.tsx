@@ -66,16 +66,10 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
+    console.error('Chat error:', error);
     return NextResponse.json(
-      { error: 'Chat failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Chat failed' },
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-  return NextResponse.json({
-    message: 'Chat API is running',
-    timestamp: new Date().toISOString()
-  });
 }
