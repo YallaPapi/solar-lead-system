@@ -77,30 +77,58 @@ function createCompanySlug(companyName: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { 
-      // Prospect data
-      name, 
-      email, 
-      organization_name, 
-      title, 
-      city, 
-      state, 
-      organization_short_description, 
-      industry,
-      // Client company details (the solar company using this service)
-      client_company_name, // REQUIRED - no default
-      client_website, // REQUIRED - no default  
-      service_type = "Solar services"
-      // calendar_link removed - now generated dynamically
-    } = await request.json();
+    const body = await request.json();
+    console.log('Received request body:', body);
 
-    // Validate required fields (removed calendar_link)
-    if (!name || !organization_name || !client_company_name || !client_website) {
+    // FIXED: Handle both the old format (for N8N) and new format (for other uses)
+    let name, email, organization_name, title, city, state, organization_short_description, industry;
+    let client_company_name, client_website, service_type;
+
+    // Check if this is coming from N8N (has contactName, companyName fields)
+    if (body.contactName || body.companyName) {
+      // N8N format
+      name = body.contactName || body.contactname || 'Prospect';
+      email = body.contactEmail || body.leadEmail || '';
+      organization_name = body.companyName || body.organization_name || '';
+      title = body.title || '';
+      city = body.location ? body.location.split(',')[0]?.trim() : '';
+      state = body.location ? body.location.split(',')[1]?.trim() : '';
+      organization_short_description = body.organization_short_description || '';
+      industry = body.industry || '';
+      
+      // Default values for N8N requests
+      client_company_name = 'Solar Bookers';
+      client_website = 'https://solarbookers.com';
+      service_type = 'Solar services';
+    } else {
+      // Original format
+      name = body.name;
+      email = body.email;
+      organization_name = body.organization_name;
+      title = body.title;
+      city = body.city;
+      state = body.state;
+      organization_short_description = body.organization_short_description;
+      industry = body.industry;
+      client_company_name = body.client_company_name;
+      client_website = body.client_website;
+      service_type = body.service_type || "Solar services";
+    }
+
+    console.log('Processed fields:', { name, organization_name, client_company_name, client_website });
+
+    // Validate required fields
+    if (!organization_name) {
       return NextResponse.json(
-        { error: 'Name, organization_name, client_company_name, and client_website are required' },
+        { error: 'Company name (organization_name or companyName) is required' },
         { status: 400 }
       );
     }
+
+    // Set defaults if missing
+    if (!name) name = 'Prospect';
+    if (!client_company_name) client_company_name = 'Solar Bookers';
+    if (!client_website) client_website = 'https://solarbookers.com';
 
     // Generate dynamic calendar link based on client company name
     const companySlug = createCompanySlug(organization_name);
@@ -159,9 +187,10 @@ FAQ:
       tools: [{ type: "code_interpreter" }]
     });
 
-    // Generate clean demo URL and dynamic calendar link based on client company name
-    const baseUrl = 'https://solarbookers.com';
-    const demoUrl = `${baseUrl}/${companySlug}`;
+    // FIXED: Use the correct domain for demo URL
+    const host = request.headers.get('host') || 'prototype-buildercd-lh7rovzkm-stuartoden-2590s-projects.vercel.app';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const demoUrl = `${protocol}://${host}/${companySlug}`;
 
     // Store the assistant mapping for this company
     try {
@@ -182,19 +211,25 @@ FAQ:
       // Don't fail the whole request if storage fails
     }
 
-    return NextResponse.json({
+    // FIXED: Return 'url' field that N8N expects, plus other fields for compatibility
+    const response = {
       success: true,
       assistantId: assistant.id,
-      demoUrl: demoUrl,
+      url: demoUrl,           // This is what N8N expects
+      demoUrl: demoUrl,       // Keep for backward compatibility
       companySlug: companySlug,
       calendarLink: dynamicCalendarLink,
       message: `Solar demo assistant created for ${name} at ${organization_name}`
-    });
+    };
+
+    console.log('Returning response:', response);
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Error creating assistant:', error);
     return NextResponse.json(
-      { error: 'Failed to create assistant' },
+      { error: 'Failed to create assistant', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
