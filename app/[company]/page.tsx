@@ -125,14 +125,20 @@ export default function CompanyDemoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-7xl mx-auto flex gap-8">
+    <div className="min-h-screen bg-gray-100 py-8">
+      <div className="max-w-4xl mx-auto text-center">
         
-        {/* iPhone SMS Interface */}
-        <div className="flex-shrink-0">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">SMS Marketing Demo</h1>
+          <p className="text-gray-600">See how our AI assistant engages {companyName} leads via text messaging</p>
+        </div>
+
+        {/* iPhone SMS Interface - CENTERED */}
+        <div className="flex justify-center mb-8">
           <div className="w-80 bg-black rounded-[2.5rem] p-2 shadow-2xl">
-            {/* iPhone Notch & Status Bar */}
             <div className="bg-black rounded-[2.25rem] overflow-hidden">
+              
               {/* Status Bar */}
               <div className="bg-black px-6 py-2 flex justify-between items-center text-white text-sm">
                 <div className="flex items-center space-x-1">
@@ -239,63 +245,31 @@ export default function CompanyDemoPage() {
           </div>
         </div>
 
-        {/* Instructions Panel */}
-        <div className="flex-1 max-w-lg">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">SMS Marketing Demo for {companyName}</h2>
-            
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">📱 How This Works</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  This demonstrates how our AI assistant engages leads via SMS text messaging. 
-                  The conversation you see would happen on your prospect's actual phone.
-                </p>
+        {/* Simple Instructions */}
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Test the AI Assistant</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="font-medium text-blue-800">Try: "yes" or "yeah"</p>
+                <p className="text-blue-600 text-xs">See how it responds to interest</p>
               </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">🤖 Test the AI Assistant</h3>
-                <div className="space-y-3">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm font-medium text-blue-800 mb-2">Try saying "yes" or "yeah"</p>
-                    <p className="text-xs text-blue-600">The AI will ask about your interest level</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm font-medium text-green-800 mb-2">Try saying "no" or "not interested"</p>
-                    <p className="text-xs text-green-600">The AI will try to re-engage with a different approach</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm font-medium text-purple-800 mb-2">Try asking about pricing or costs</p>
-                    <p className="text-xs text-purple-600">The AI will guide toward a callback</p>
-                  </div>
-                  <div className="bg-orange-50 p-4 rounded-lg">
-                    <p className="text-sm font-medium text-orange-800 mb-2">Try saying "schedule" or "callback"</p>
-                    <p className="text-xs text-orange-600">The AI will provide a calendar link</p>
-                  </div>
-                </div>
+              <div className="bg-green-50 p-3 rounded">
+                <p className="font-medium text-green-800">Try: "not interested"</p>
+                <p className="text-green-600 text-xs">Watch it handle objections</p>
               </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">⚡ Key Features</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Responds 24/7 instantly</li>
-                  <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Personalized to your company</li>
-                  <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Qualifies leads automatically</li>
-                  <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Books appointments directly</li>
-                  <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Handles objections professionally</li>
-                </ul>
+              <div className="bg-purple-50 p-3 rounded">
+                <p className="font-medium text-purple-800">Try: "how much?"</p>
+                <p className="text-purple-600 text-xs">See pricing objection handling</p>
               </div>
-
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-800 mb-2">💡 Pro Tip</h4>
-                <p className="text-sm text-gray-600">
-                  The AI is trained on proven sales techniques and will persistently engage 
-                  prospects while maintaining a professional, helpful tone.
-                </p>
+              <div className="bg-orange-50 p-3 rounded">
+                <p className="font-medium text-orange-800">Try: "schedule call"</p>
+                <p className="text-orange-600 text-xs">Watch it book appointments</p>
               </div>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
