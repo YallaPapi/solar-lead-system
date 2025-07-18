@@ -146,13 +146,13 @@ export default function CompanyDemoPage() {
   // Loading state
   if (initializing) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <h1 className="text-xl font-medium text-white mb-2">
             Loading {companySlug.replace(/-/g, ' ')} Demo...
           </h1>
-          <p className="text-gray-600">Setting up your personalized solar consultation</p>
+          <p className="text-gray-400 text-sm">Setting up your personalized solar consultation</p>
         </div>
       </div>
     );
@@ -161,12 +161,12 @@ export default function CompanyDemoPage() {
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center max-w-md">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Demo Not Found</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="space-y-2 text-sm text-gray-500">
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center max-w-sm mx-4">
+          <div className="text-red-500 text-4xl mb-4">⚠️</div>
+          <h1 className="text-xl font-semibold text-white mb-4">Demo Not Found</h1>
+          <p className="text-gray-400 mb-6 text-sm">{error}</p>
+          <div className="space-y-2 text-xs text-gray-500">
             <p><strong>Company:</strong> {companySlug.replace(/-/g, ' ')}</p>
             <p><strong>URL:</strong> solarbookers.com/{companySlug}</p>
           </div>
@@ -175,89 +175,118 @@ export default function CompanyDemoPage() {
     );
   }
 
-  // SMS Demo Interface
+  // iPhone-style SMS Demo Interface
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b p-4">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-lg font-semibold text-gray-800 text-center">
-            {companySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} - SMS Demo
-          </h1>
-          <p className="text-sm text-gray-600 text-center mt-1">
-            Experience our lead qualification process
-          </p>
-        </div>
-      </div>
-
-      {/* Chat Container */}
-      <div className="max-w-md mx-auto bg-white min-h-[calc(100vh-120px)] flex flex-col">
-        {/* Messages */}
-        <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-          {messages.length === 0 && !isLoading && (
-            <div className="text-center text-gray-500 py-8">
-              <p>Send a message to start the demo...</p>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      {/* iPhone Container */}
+      <div className="w-full max-w-sm bg-black rounded-3xl shadow-2xl border border-gray-800 overflow-hidden">
+        
+        {/* iPhone Status Bar */}
+        <div className="bg-black px-6 py-2 flex justify-between items-center text-white text-sm">
+          <div className="flex items-center space-x-1">
+            <div className="w-4 h-2 bg-white rounded-sm"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
+          </div>
+          <div className="text-center font-medium">
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="text-xs">100%</div>
+            <div className="w-6 h-3 border border-white rounded-sm">
+              <div className="w-full h-full bg-green-500 rounded-sm"></div>
             </div>
-          )}
-          
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.sender === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
-              >
-                <p className="text-sm">{message.text}</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </p>
+          </div>
+        </div>
+
+        {/* SMS Header */}
+        <div className="bg-gray-900 px-4 py-3 border-b border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-semibold">S</span>
+              </div>
+              <div>
+                <h1 className="text-white text-base font-medium">
+                  {companySlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </h1>
+                <p className="text-gray-400 text-xs">Active now</p>
               </div>
             </div>
-          ))}
-          
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-200 text-gray-800 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                  <span className="text-xs">Sarah is typing...</span>
+            <div className="text-blue-400 text-sm">Details</div>
+          </div>
+        </div>
+
+        {/* Messages Container */}
+        <div className="bg-black h-96 flex flex-col">
+          {/* Messages */}
+          <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+            {messages.length === 0 && !isLoading && (
+              <div className="text-center text-gray-500 py-8 text-sm">
+                <p>Send a message to start the demo...</p>
+              </div>
+            )}
+            
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs px-3 py-2 rounded-2xl ${
+                    message.sender === 'user'
+                      ? 'bg-blue-500 text-white rounded-br-md'
+                      : 'bg-gray-700 text-white rounded-bl-md'
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed">{message.text}</p>
+                  <p className="text-xs opacity-60 mt-1">
+                    {message.timestamp.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            ))}
+            
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-700 text-white max-w-xs px-3 py-2 rounded-2xl rounded-bl-md">
+                  <div className="flex items-center space-x-1">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
-        {/* Input */}
-        <div className="border-t bg-white p-4">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              disabled={isLoading}
-              className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!inputText.trim() || isLoading}
-              className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Send
-            </button>
+          {/* Input Area */}
+          <div className="p-4 border-t border-gray-700">
+            <div className="flex items-center space-x-3 bg-gray-800 rounded-full px-4 py-2">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="iMessage"
+                disabled={isLoading}
+                className="flex-1 bg-transparent text-white placeholder-gray-400 text-sm focus:outline-none disabled:opacity-50"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!inputText.trim() || isLoading}
+                className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
