@@ -1,6 +1,4 @@
-﻿# Create the real OpenAI version
-@"
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -81,4 +79,3 @@ export async function GET() {
     timestamp: new Date().toISOString()
   });
 }
-"@ | Out-File -FilePath "app/api/chat/route.tsx" -Encoding UTF8 -NoNewline
