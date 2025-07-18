@@ -1,13 +1,8 @@
-# Create the ultra-simple version
-$newChatAPI = @'
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== ULTRA SIMPLE CHAT TEST ===');
-    
     const body = await request.json();
-    console.log('Received body:', body);
     
     return NextResponse.json({
       success: true,
@@ -17,7 +12,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Ultra simple error:', error);
     return NextResponse.json(
       { 
         error: 'Ultra simple API failed',
@@ -34,7 +28,3 @@ export async function GET() {
     timestamp: new Date().toISOString()
   });
 }
-'@
-
-# Write to file
-$newChatAPI | Out-File -FilePath "app/api/chat/route.tsx" -Encoding UTF8
