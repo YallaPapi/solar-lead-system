@@ -127,10 +127,25 @@ FAQ:
       tools: [{ type: "code_interpreter" }]
     });
 
-  // FIXED: Use the custom domain
-const host = request.headers.get('host') || 'solarbookers.com';
-const protocol = 'https';
-const demoUrl = `${protocol}://${host}/${companySlug}`;
+  // Use provided domain or smart detection for Vercel/production
+  let host = body.domain;
+  
+  if (!host) {
+    // Check Vercel headers first, then fallback to standard headers
+    const vercelUrl = request.headers.get('x-vercel-forwarded-host') || 
+                     request.headers.get('x-forwarded-host') ||
+                     request.headers.get('host');
+    host = vercelUrl || 'solarbookers.com';
+  }
+  
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const demoUrl = `${protocol}://${host}/${companySlug}`;
+  
+  console.log('Domain detection:', { 
+    providedDomain: body.domain,
+    detectedHost: host,
+    finalDemoUrl: demoUrl 
+  });
 
     // Store the assistant mapping for this company using direct Redis call
     try {
