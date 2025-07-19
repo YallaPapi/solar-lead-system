@@ -12,6 +12,17 @@ interface Message {
 export default function CompanyPage() {
   const params = useParams();
   const company = params?.company as string;
+  
+  // Format company name for display
+  const formatCompanyName = (name: string) => {
+    if (!name) return 'Solar Advisor';
+    return name
+      .replace(/-/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +41,7 @@ export default function CompanyPage() {
     if (company) {
       const openingMessage: Message = {
         role: 'assistant',
-        content: "It's Sarah from Solar Bookers here. Is this the same person that got a database reactivation quote from us in the last couple of months?",
+        content: `Hey this is Sarah from ${formatCompanyName(company)}. Is this the same person that got a database reactivation quote from us in the last couple of months?`,
         timestamp: new Date()
       };
       setMessages([openingMessage]);
@@ -129,7 +140,7 @@ export default function CompanyPage() {
             <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
               <div className="text-blue-500 text-lg">‹</div>
               <div className="flex flex-col items-center">
-                <div className="text-black font-semibold text-lg">{company || 'Solar Advisor'}</div>
+                <div className="text-black font-semibold text-lg">{formatCompanyName(company)}</div>
                 <div className="text-gray-500 text-xs">Active now</div>
               </div>
               <div className="text-blue-500 text-lg">🔄</div>
