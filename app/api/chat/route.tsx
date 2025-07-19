@@ -74,55 +74,39 @@ export async function POST(request: NextRequest) {
 
     console.log('Run created:', run.id);
 
-    // OPTIMIZED polling with exponential backoff - much faster!
+    // FIXED: Bypass run status checking entirely - poll messages directly (working pattern from debug guide)
     let attempts = 0;
-    const maxAttempts = 20; // Reduced from 30
-    let delay = 200; // Start with 200ms, much faster than 1 second
+    const maxAttempts = 30;
+    const runStartTime = Date.now();
     
     while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       try {
-        // FIXED: Check run status with correct OpenAI API syntax
-        const currentRun = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
-        console.log(`Attempt ${attempts + 1}: Run status: ${currentRun.status}`);
+        // Skip run status checking - go straight to messages
+        const messages = await openai.beta.threads.messages.list(currentThreadId);
         
-        if (currentRun.status === 'completed') {
-          // Run completed, get the latest messages
-          const messages = await openai.beta.threads.messages.list(currentThreadId);
-          
-          // Get the most recent assistant message
-          const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
-          
-          if (assistantMessage && assistantMessage.content[0] && assistantMessage.content[0].type === 'text') {
-            console.log(`SUCCESS! Got response in ${attempts + 1} attempts (${(Date.now() - Date.now()) / 1000}s)`);
-            return NextResponse.json({
-              success: true,
-              message: assistantMessage.content[0].text.value,
-              threadId: currentThreadId
-            });
-          }
-        } else if (currentRun.status === 'failed' || currentRun.status === 'cancelled' || currentRun.status === 'expired') {
-          console.error(`Run failed with status: ${currentRun.status}`);
+        // Look for assistant messages created after this run
+        const newAssistantMessage = messages.data.find(msg => 
+          msg.role === 'assistant' && 
+          new Date(msg.created_at * 1000) > new Date(runStartTime)
+        );
+        
+        if (newAssistantMessage && newAssistantMessage.content[0] && newAssistantMessage.content[0].type === 'text') {
+          console.log(`SUCCESS! Got response in ${attempts + 1} attempts`);
           return NextResponse.json({
-            error: `Assistant run ${currentRun.status}`,
+            success: true,
+            message: newAssistantMessage.content[0].text.value,
             threadId: currentThreadId
-          }, { status: 500 });
-        } else if (currentRun.status === 'in_progress' || currentRun.status === 'queued') {
-          // These are expected statuses, continue polling
-          console.log(`Run ${currentRun.status}, continuing to poll...`);
+          });
         }
         
         attempts++;
-        
-        // Exponential backoff: 200ms, 400ms, 800ms, 1.6s, 3.2s max
-        delay = Math.min(delay * 2, 3200);
+        console.log(`Attempt ${attempts}: No new assistant message yet, continuing...`);
         
       } catch (error) {
-        console.error('Error checking run/messages:', error);
+        console.error('Error checking messages:', error);
         attempts++;
-        // On error, use shorter delay to retry quickly
-        delay = Math.min(delay * 1.5, 2000);
       }
     }
 
