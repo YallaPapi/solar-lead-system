@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Wait for completion with better error handling
+    // Wait for completion with simplified approach
     let runStatus = run;
     let attempts = 0;
     const maxAttempts = 30;
@@ -105,14 +105,30 @@ export async function POST(request: NextRequest) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       console.log(`Attempt ${attempts + 1}: Status ${runStatus.status}`);
       
-             try {
-         // @ts-ignore - OpenAI SDK typing issue with retrieve method
-         runStatus = await openai.beta.threads.runs.retrieve(
-           currentThreadId,
-           run.id
-         );
-         attempts++;
-       } catch (retrieveError) {
+      try {
+        // Use direct parameters approach to avoid TypeScript issues
+        const retrieveParams = {
+          thread_id: currentThreadId,
+          run_id: run.id
+        };
+        
+        // Make the API call with proper parameters
+        const response = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs/${run.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+            'OpenAI-Beta': 'assistants=v1'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        runStatus = await response.json();
+        attempts++;
+      } catch (retrieveError) {
         console.error('Failed to retrieve run status:', retrieveError);
         return NextResponse.json(
           { error: 'Failed to check run status', threadId: currentThreadId },
