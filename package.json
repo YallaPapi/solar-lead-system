@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "changelog": "node .taskmaster/scripts/update-changelog.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.1",
