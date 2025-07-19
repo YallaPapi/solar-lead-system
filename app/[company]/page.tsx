@@ -49,7 +49,7 @@ export default function CompanyPage() {
 
       const openingMessage: Message = {
         role: 'assistant',
-        content: `Hey ${sampleLeadData.firstName}, this is Sarah from ${formatCompanyName(company)}. Is this the same person that got a database reactivation quote from us in the last couple of months?`,
+        content: `Hi ${sampleLeadData.firstName}, this is Sarah from ${formatCompanyName(company)}. I hope you're doing well! I'm reaching out because ${formatCompanyName(company)} recently showed interest in solar energy solutions. Are you still exploring ways to reduce your energy costs with solar?`,
         timestamp: new Date()
       };
       setMessages([openingMessage]);
@@ -131,7 +131,7 @@ export default function CompanyPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Solar Bookers</h1>
-                <p className="text-sm text-gray-600">SMS Lead Reactivation Demo for {formatCompanyName(company)}</p>
+                <p className="text-sm text-gray-600">Solar Consultation Demo for {formatCompanyName(company)}</p>
               </div>
             </div>
             <div className="bg-green-50 px-4 py-2 rounded-full border border-green-200">
@@ -152,23 +152,23 @@ export default function CompanyPage() {
                   <span className="text-white font-bold text-2xl">{formatCompanyName(company).charAt(0)}</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">{formatCompanyName(company)}</h2>
-                <p className="text-blue-600 font-medium">SMS Lead Reactivation System</p>
+                <p className="text-blue-600 font-medium">Solar Consultation System</p>
               </div>
 
               <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                   <h3 className="font-semibold text-blue-900 mb-2">🤖 How It Works</h3>
                   <p className="text-blue-800 text-sm leading-relaxed">
-                    This SMS agent automatically reaches out to your old leads with <strong>personalized messages</strong> using their name, company, and context. 
-                    It engages them in natural conversation and works to book appointments for your sales team.
+                    This SMS agent automatically reaches out to your solar prospects with <strong>personalized messages</strong> using their name, company, and context. 
+                    It engages them in natural conversation about their energy needs and works to book solar consultations for your sales team.
                   </p>
                 </div>
 
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                   <h3 className="font-semibold text-green-900 mb-2">💬 Try It Out</h3>
                   <p className="text-green-800 text-sm leading-relaxed">
-                    <strong>Act like "John" (CEO from Austin, TX)!</strong> This demo shows a personalized message for a specific lead. 
-                    Try different responses like "Yes, that was me" or "Tell me more" to see how the AI handles various scenarios.
+                    <strong>Act like "John" (CEO from Austin, TX)!</strong> This demo shows a personalized solar consultation message for a specific prospect. 
+                    Try different responses like "Yes, I'm interested" or "Tell me more about solar" to see how the AI handles various scenarios.
                   </p>
                 </div>
 
@@ -184,22 +184,22 @@ export default function CompanyPage() {
 
                 <div className="border-t border-gray-200 pt-4">
                   <h4 className="font-medium text-gray-900 mb-3">Quick Responses to Try:</h4>
-                  <div className="space-y-2">
+                                      <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      <span className="text-sm text-gray-700">"Yes, that was me"</span>
+                      <span className="text-sm text-gray-700">"Yes, I'm interested in solar"</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span className="text-sm text-gray-700">"Not interested"</span>
+                      <span className="text-sm text-gray-700">"Not interested in solar"</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                      <span className="text-sm text-gray-700">"How much does it cost?"</span>
+                      <span className="text-sm text-gray-700">"How much do solar panels cost?"</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                      <span className="text-sm text-gray-700">"Tell me more"</span>
+                      <span className="text-sm text-gray-700">"Tell me more about solar"</span>
                     </div>
                   </div>
                 </div>
