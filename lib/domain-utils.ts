@@ -2,17 +2,15 @@ import { NextRequest } from 'next/server';
 
 /**
  * Detect the current domain from request headers and environment variables
- * Prioritizes Vercel-specific headers and environment variables for accurate detection
+ * For production, always use solarbookers.com to ensure n8n gets production URLs
  */
 export function detectDomain(request: NextRequest, fallbackDomain?: string): string {
-  // Priority order for domain detection:
-  // 1. Vercel deployment URL (most accurate for preview deployments)
-  // 2. Vercel forwarded host
-  // 3. Standard forwarded host
-  // 4. Host header
-  // 5. Environment variables
-  // 6. Fallback domain
+  // For production API calls (like from n8n), always use the production domain
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+    return 'solarbookers.com';
+  }
   
+  // For development/preview environments, use Vercel detection
   const domain = request.headers.get('x-vercel-deployment-url') ||
                 request.headers.get('x-vercel-forwarded-host') ||
                 request.headers.get('x-forwarded-host') ||
