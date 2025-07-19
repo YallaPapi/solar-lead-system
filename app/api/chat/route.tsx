@@ -75,10 +75,7 @@ export async function POST(request: NextRequest) {
       
       try {
         // FIXED: Check run status with correct OpenAI API syntax
-        const currentRun = await openai.beta.threads.runs.retrieve({
-          thread_id: currentThreadId,
-          run_id: run.id
-        });
+        const currentRun = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
         console.log(`Attempt ${attempts + 1}: Run status: ${currentRun.status}`);
         
         if (currentRun.status === 'completed') {
