@@ -549,20 +549,25 @@ instructions: `
 
 ### 5. Rate Limiting & Error Handling:
 ```typescript
-// Chat API polling pattern (avoiding run status issues):
+// Chat API polling pattern (FIXED - properly checks run status):
 let attempts = 0;
 while (attempts < 30) {
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  const messages = await openai.beta.threads.messages.list(currentThreadId);
-  const assistantMessages = messages.data.filter(msg => 
-    msg.role === 'assistant' && 
-    new Date(msg.created_at * 1000) > new Date(run.created_at * 1000)
-  );
+  // CRITICAL: Check run status first, then get messages
+  const currentRun = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
   
-  if (assistantMessages.length > 0) {
-    return assistantMessages[0].content[0].text.value;
+  if (currentRun.status === 'completed') {
+    const messages = await openai.beta.threads.messages.list(currentThreadId);
+    const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
+    
+    if (assistantMessage && assistantMessage.content[0]?.type === 'text') {
+      return assistantMessage.content[0].text.value;
+    }
+  } else if (currentRun.status === 'failed' || currentRun.status === 'cancelled') {
+    throw new Error(`Assistant run ${currentRun.status}`);
   }
+  
   attempts++;
 }
 ```
