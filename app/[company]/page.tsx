@@ -73,17 +73,16 @@ export default function CompanyPage() {
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.message || `It's Sarah from ${formatCompanyName(company)} here. Is this the same John that got a Solar quote from us in the last couple of months?`,
+        content: data.message,
         timestamp: new Date()
       };
 
       setMessages([assistantMessage]);
     } catch (error) {
       console.error('Error initializing chat:', error);
-      // Fallback to a proper solar message if API fails
       const fallbackMessage: Message = {
         role: 'assistant',
-        content: `It's Sarah from ${formatCompanyName(company)} here. Is this the same John that got a Solar quote from us in the last couple of months?`,
+        content: 'Sorry, there was an error starting the chat. Please refresh the page.',
         timestamp: new Date()
       };
       setMessages([fallbackMessage]);

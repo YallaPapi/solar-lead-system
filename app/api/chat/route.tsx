@@ -58,6 +58,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // FIXED: For initialization, add a special system instruction to ensure the assistant
+    // recognizes this is the absolute first interaction and should send the FIRST message
+    if (initialize) {
+      await openai.beta.threads.messages.create(currentThreadId, {
+        role: 'user',
+        content: 'SYSTEM: This is the absolute first interaction. Please send your FIRST message exactly as specified in your instructions. This is not a response to any previous message - this is the opening message to start the conversation.'
+      });
+    }
+
     // Create run and immediately poll with a simplified approach
     const run = await openai.beta.threads.runs.create(currentThreadId, {
       assistant_id: finalAssistantId
