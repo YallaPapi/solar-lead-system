@@ -202,7 +202,7 @@ export default function CompanyPage() {
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                   <h3 className="font-semibold text-green-900 mb-2">💬 Try It Out</h3>
                   <p className="text-green-800 text-sm leading-relaxed">
-                    <strong>Act like "John" (CEO from Austin, TX)!</strong> This demo shows a personalized solar consultation message for a specific prospect. 
+                    <strong>Act like the lead person!</strong> This demo shows a personalized solar consultation message for a specific prospect. 
                     Try different responses like "Yes, I'm interested" or "Tell me more about solar" to see how the AI handles various scenarios.
                   </p>
                 </div>
@@ -210,10 +210,10 @@ export default function CompanyPage() {
                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                   <h3 className="font-semibold text-yellow-900 mb-2">👤 Demo Lead Profile</h3>
                   <div className="text-yellow-800 text-sm space-y-1">
-                    <div><strong>Name:</strong> John</div>
-                    <div><strong>Title:</strong> CEO</div>
-                    <div><strong>Location:</strong> Austin, TX</div>
-                    <div><strong>Company:</strong> {formatCompanyName(company)}</div>
+                    <div><strong>Name:</strong> Prospect looking for solar</div>
+                    <div><strong>Type:</strong> Homeowner/Business owner</div>
+                    <div><strong>Interest:</strong> Solar panel installation</div>
+                    <div><strong>Calendar:</strong> <a href={`https://calendly.com/${company}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Book consultation →</a></div>
                   </div>
                 </div>
 
