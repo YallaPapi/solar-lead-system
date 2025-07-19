@@ -37,9 +37,17 @@ export async function POST(request: NextRequest) {
     let currentThreadId = threadId;
     if (!currentThreadId) {
       console.log('Creating new thread...');
-      const thread = await openai.beta.threads.create();
-      currentThreadId = thread.id;
-      console.log('Created thread:', currentThreadId);
+      try {
+        const thread = await openai.beta.threads.create();
+        currentThreadId = thread.id;
+        console.log('Successfully created thread:', currentThreadId);
+      } catch (createError) {
+        console.error('Failed to create thread:', createError);
+        return NextResponse.json(
+          { error: 'Failed to create conversation thread' },
+          { status: 500 }
+        );
+      }
     }
     
     // Validate thread ID before proceeding
@@ -82,9 +90,12 @@ export async function POST(request: NextRequest) {
         throw new Error('Missing thread ID or run ID for status check');
       }
       
-      // Only retrieve the latest status
-      // @ts-ignore - OpenAI library typing issue
-      const latestRun = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
+      // Only retrieve the latest status - bypass TypeScript issue
+      // @ts-ignore - OpenAI typing inconsistency  
+      const latestRun = await openai.beta.threads.runs.retrieve(
+        currentThreadId,
+        run.id
+      );
       runStatus = latestRun;
       attempts++;
     }
