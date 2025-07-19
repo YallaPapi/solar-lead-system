@@ -382,7 +382,7 @@
               3
             ],
             "details": "Review and refactor the chat API code to use the latest OpenAI API thread management methods. Implement robust error handling and support for streaming responses as recommended by OpenAI.\n<info added on 2025-07-19T01:10:33.483Z>\nRoot cause identified: The /test-solar demo is using an outdated assistant created before domain fixes were implemented. To resolve this issue, we need to create a fresh demo with the new domain detection logic and test chat functionality on this new instance instead of continuing to troubleshoot the broken old demo. \n\nThe plan is to:\n1. Create a new demo manually via the API\n2. Implement the updated domain detection logic in this fresh demo\n3. Test chat functionality on the new demo to verify proper operation\n4. Document the process to ensure future demos are created with the correct configuration\n\nThis approach will allow us to validate that our latest code changes work correctly with a clean implementation rather than trying to fix compatibility issues with the outdated demo.\n</info added on 2025-07-19T01:10:33.483Z>\n<info added on 2025-07-19T01:13:14.003Z>\nFAILED: Created quick-demo endpoint with syntax error. Shows 'SyntaxError: Unexpected token' error. The issue appears to be in the template literal syntax when returning HTML from the Next.js API route. \n\nAfter investigating, I found that Next.js API routes require proper response objects rather than direct HTML strings. The correct implementation should use:\n\n```javascript\nres.status(200).send(`<!DOCTYPE html><html>...</html>`);\n```\n\nor for newer Next.js API routes:\n\n```javascript\nreturn new Response(`<!DOCTYPE html><html>...</html>`, {\n  headers: { 'Content-Type': 'text/html' }\n});\n```\n\nI'll fix the template literal syntax issues and implement the proper HTML response handling pattern to ensure the quick-demo endpoint works correctly with the dynamic domain detection.\n</info added on 2025-07-19T01:13:14.003Z>\n<info added on 2025-07-19T01:14:21.604Z>\nFIXED: Research showed the issue was using NextResponse instead of standard Response for HTML. Template literal syntax was also incorrect. Fixed to use: new Response(`<html>...</html>`, { headers: { 'Content-Type': 'text/html' } }). This follows Next.js App Router best practices for returning HTML from API routes. Ready to test the corrected endpoint.\n</info added on 2025-07-19T01:14:21.604Z>\n<info added on 2025-07-19T01:16:40.117Z>\nFIXED again: Research revealed the issue was multi-line template literals causing syntax errors. Changed all HTML responses to single-line template literals to avoid parsing issues. The problem was line breaks and indentation in template literals were confusing the JavaScript parser. Now using: const html = `<html><body>...</body></html>` instead of multi-line format.\n</info added on 2025-07-19T01:16:40.117Z>\n<info added on 2025-07-19T01:21:52.065Z>\nISSUE: The quick-demo endpoint is returning a 401 Unauthorized error when tested via curl. This suggests authentication issues or deployment problems rather than syntax errors in the code itself.\n\nTROUBLESHOOTING PLAN:\n1. Try creating a demo directly through the create-prototype endpoint instead of quick-demo to isolate whether the issue is specific to the quick-demo endpoint\n2. Check environment variables in the deployment to ensure all required authentication tokens and API keys are properly set\n3. Verify that the deployment has the correct permissions to access OpenAI and other required services\n4. Examine deployment logs for any additional error details that might not be visible in the 401 response\n5. Test with different authentication headers to determine if the issue is related to missing or invalid credentials\n\nThis authentication issue may be related to the OpenAI API integration or deployment-specific configuration rather than the HTML response formatting that was previously fixed.\n</info added on 2025-07-19T01:21:52.065Z>\n<info added on 2025-07-19T01:53:16.089Z>\nROOT CAUSE IDENTIFIED: Vercel Preview Deployment Protection is causing 401 Unauthorized errors on all API endpoints. This security feature is blocking access to the chat API, preventing proper functionality. The assistant ID exists (asst_RV6wIOWY4jxuHJvIqDdZndC1) and all infrastructure components are working correctly - the issue is specifically related to the preview deployment authentication blocking API access.\n\nSOLUTION OPTIONS:\n1. Disable Vercel Preview Protection for this project to allow unauthenticated access to API endpoints\n2. Implement an authentication bypass mechanism specifically for chat API endpoints in preview environments\n3. Create proper authentication handling in the demo that passes credentials to the chat API\n\nNEXT STEPS:\n1. Modify the API routes to check for preview environment and implement appropriate authentication handling\n2. Update the demo frontend to include necessary authentication tokens when making API calls\n3. Test the solution on a fresh preview deployment to verify chat functionality works correctly\n4. Document the authentication requirements for future preview deployments\n</info added on 2025-07-19T01:53:16.089Z>",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Test chat functionality end-to-end in a preview deployment, including thread creation, message exchange, and error handling."
           },
           {
@@ -393,15 +393,165 @@
               4
             ],
             "details": "List and describe all necessary environment variables (e.g., NEXT_PUBLIC_ROOT_DOMAIN, OpenAI keys). Implement automated tests to check chat API functionality in preview deployments. Write clear documentation for the demo creation and testing process.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run automated checks in preview deployments to confirm environment variables are set and chat API is functional. Review documentation for completeness and clarity."
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Migrate from Vercel Preview Domains to Production solarbookers.com Domain",
+        "description": "Transition all application logic, integrations, and workflows from Vercel preview domains to the production solarbookers.com domain, updating domain detection, n8n workflow integration, and ensuring end-to-end system functionality.",
+        "details": "1. Update environment configuration to ensure the production deployment uses the solarbookers.com domain, following Vercel best practices for custom domain assignment (ensure the domain is assigned to the production branch and that all environment variables referencing the domain are updated accordingly).\n2. Refactor all domain detection logic throughout the codebase to default to solarbookers.com in production, while maintaining support for preview domains in non-production environments. Use environment variables such as NEXT_PUBLIC_ROOT_DOMAIN or VERCEL_URL to distinguish environments, and ensure all URL generation utilities reference the correct domain.\n3. Update n8n workflow integration: modify webhook URLs, callback URLs, and any API endpoints in the n8n workflow to use the production domain. Coordinate with the n8n workflow maintainers to update any hardcoded or dynamically generated URLs.\n4. Review and update all documentation and configuration files to reference the production domain where appropriate.\n5. Deploy to production and verify that the solarbookers.com domain is correctly assigned and serving the latest deployment (using Vercel dashboard and CLI as needed).\n6. Ensure that all redirects (e.g., www.solarbookers.com to solarbookers.com) are configured in Vercel's Domains tab if needed, following Vercel's redirect best practices.\n7. Perform a full end-to-end test of the workflow: from n8n demo creation, through API endpoints, to chat functionality, confirming that all components interact correctly under the production domain.",
+        "testStrategy": "- Deploy the application to production and verify that solarbookers.com serves the latest deployment and all endpoints are reachable.\n- Confirm that all domain detection logic correctly identifies the production environment and generates URLs using solarbookers.com.\n- Test the n8n workflow end-to-end: trigger a demo creation, ensure webhooks and callbacks use the production domain, and verify successful API interactions.\n- Validate chat functionality by initiating and completing a chat session, confirming OpenAI thread creation and persistence.\n- Use the integration test suite and end-to-end test scripts to simulate the complete workflow, ensuring all steps succeed with the production domain.\n- Check for proper redirects (e.g., www to apex domain) and absence of any references to preview domains in logs, emails, or user-facing URLs.",
+        "status": "pending",
+        "dependencies": [
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update Production Environment Configuration for solarbookers.com",
+            "description": "Configure the production deployment to use the solarbookers.com domain, ensuring all environment variables and Vercel project settings reference the correct domain according to Vercel best practices.",
+            "dependencies": [],
+            "details": "Assign the solarbookers.com domain to the production branch in the Vercel dashboard, update environment variables such as NEXT_PUBLIC_ROOT_DOMAIN or VERCEL_URL, and verify DNS and nameserver settings as needed.",
+            "status": "done",
+            "testStrategy": "Deploy to a staging environment, verify that the application resolves to solarbookers.com, and check that all environment variables are correctly set."
+          },
+          {
+            "id": 2,
+            "title": "Refactor Domain Detection Logic in Codebase",
+            "description": "Update all domain detection logic to default to solarbookers.com in production while maintaining support for preview domains in non-production environments.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify URL generation utilities and domain checks to use environment variables for distinguishing between production and preview environments, ensuring all generated URLs are accurate.",
+            "status": "pending",
+            "testStrategy": "Run automated and manual tests to confirm that URLs and callbacks are generated correctly in both production and preview deployments."
+          },
+          {
+            "id": 3,
+            "title": "Update n8n Workflow Integration for Production Domain",
+            "description": "Modify all webhook URLs, callback URLs, and API endpoints in n8n workflows to use the solarbookers.com domain, coordinating with workflow maintainers to update any hardcoded or dynamically generated URLs.",
+            "dependencies": [
+              2
+            ],
+            "details": "Review all n8n workflows for domain references, update them to use the production domain, and ensure that any environment-based logic is consistent with the new configuration.",
+            "status": "pending",
+            "testStrategy": "Trigger n8n workflows in production and verify that all callbacks and webhooks function correctly using the solarbookers.com domain."
+          },
+          {
+            "id": 4,
+            "title": "Review and Update Documentation and Configuration Files",
+            "description": "Update all internal and external documentation, as well as configuration files, to reference the solarbookers.com production domain where appropriate.",
+            "dependencies": [
+              3
+            ],
+            "details": "Search for outdated domain references in documentation, README files, and configuration templates, replacing them with the correct production domain.",
+            "status": "pending",
+            "testStrategy": "Perform a documentation review and spot-check configuration files to ensure all references are accurate and up to date."
+          },
+          {
+            "id": 5,
+            "title": "Configure Redirects and Deploy to Production",
+            "description": "Set up necessary redirects (e.g., www.solarbookers.com to solarbookers.com) in the Vercel Domains tab and deploy the latest code to production, ensuring the domain is correctly assigned and serving the latest deployment.",
+            "dependencies": [
+              4
+            ],
+            "details": "Use Vercel's redirect configuration best practices to handle domain redirects, and verify deployment status via the Vercel dashboard and CLI.",
+            "status": "pending",
+            "testStrategy": "Test all domain variants in a browser to confirm correct redirects and verify that the production deployment is live and accessible."
+          },
+          {
+            "id": 6,
+            "title": "Perform End-to-End System Validation on Production Domain",
+            "description": "Conduct a comprehensive end-to-end test of all workflows, integrations, and application logic under the solarbookers.com domain to ensure full system functionality.",
+            "dependencies": [
+              5
+            ],
+            "details": "Test the complete workflow from n8n demo creation through API endpoints to chat functionality, confirming that all components interact correctly and all URLs resolve as expected.",
+            "status": "pending",
+            "testStrategy": "Execute manual and automated end-to-end tests, including user flows, API calls, and integration points, to validate system integrity on the production domain."
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Redesign Chat Demo Pages with Modern, Responsive UI",
+        "description": "Redesign the chat demo pages to deliver a polished, professional, and modern user interface with advanced styling, smooth animations, and full responsive design, aligning with high-quality lead generation standards.",
+        "details": "1. Conduct a UI/UX audit of the current chat demo pages to identify pain points and areas lacking professionalism.\n2. Research and adopt 2025 chat UI best practices: \n   - Use visually appealing layouts with clear hierarchy, whitespace, and brand-aligned color schemes.\n   - Implement a bottom-positioned, smart input field with predictive text and optional voice input for accessibility and speed[1][2][3].\n   - Add smooth micro-animations for message sending, typing indicators, and chat transitions to enhance interactivity and perceived performance[5].\n   - Ensure scrollable, persistent chat history with clear message bubbles, timestamps, and avatar support[4].\n   - Integrate quick reply suggestions and multimedia support (emojis, attachments, images) for richer interactions[4].\n   - Apply responsive design principles using CSS Grid/Flexbox and Tailwind CSS to ensure seamless experience across devices and screen sizes[2].\n   - Prioritize accessibility (WCAG 2.2 compliance): sufficient color contrast, keyboard navigation, ARIA labels.\n   - Personalize the interface with company branding, logo, and theme options for demo flexibility.\n3. Refactor the chat page components using React/Next.js best practices, modularizing UI elements for maintainability.\n4. Optimize for performance: lazy-load assets, minimize bundle size, and ensure fast initial load.\n5. Document the new UI structure and styling guidelines for future maintenance.",
+        "testStrategy": "- Manually test the redesigned chat demo pages on a range of devices (desktop, tablet, mobile) and browsers to ensure full responsiveness and visual consistency.\n- Validate all interactive elements (input field, quick replies, attachments, animations) for smooth operation and accessibility (keyboard, screen reader).\n- Use automated UI testing tools (e.g., Playwright, Cypress) to verify layout, responsiveness, and critical user flows.\n- Solicit feedback from stakeholders and sample users to assess perceived professionalism and usability.\n- Confirm that the new UI integrates seamlessly with the existing chat API and backend logic.",
+        "status": "pending",
+        "dependencies": [
+          17,
+          18
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Conduct Comprehensive UI/UX Audit of Current Chat Demo Pages",
+            "description": "Evaluate the existing chat demo pages to identify usability issues, areas lacking professionalism, and opportunities for improvement in visual design, accessibility, and responsiveness.",
+            "dependencies": [],
+            "details": "Review the current interface for pain points, inconsistent styling, poor hierarchy, and accessibility gaps. Document findings with annotated screenshots and prioritize issues based on user impact.",
+            "status": "done",
+            "testStrategy": "Present audit findings to stakeholders for validation and ensure all major pain points are clearly identified and understood."
+          },
+          {
+            "id": 2,
+            "title": "Research and Define 2025 Chat UI Best Practices and Requirements",
+            "description": "Investigate the latest trends and standards in chat UI design for 2025, focusing on advanced input fields, predictive text, voice input, micro-animations, multimedia support, and accessibility.",
+            "dependencies": [
+              1
+            ],
+            "details": "Compile actionable requirements based on industry research, including bottom-positioned smart input fields, predictive text, voice input, smooth animations, persistent chat history, quick replies, multimedia support, responsive layouts, and WCAG 2.2 compliance[1][2][3][4].",
+            "status": "pending",
+            "testStrategy": "Review compiled requirements with design and product teams to ensure alignment with business goals and user needs."
+          },
+          {
+            "id": 3,
+            "title": "Design Modern, Responsive Chat UI Mockups and Prototypes",
+            "description": "Create high-fidelity mockups and interactive prototypes that reflect the defined best practices, advanced styling, and company branding.",
+            "dependencies": [
+              2
+            ],
+            "details": "Use design tools (e.g., Figma) to produce visually appealing layouts with clear hierarchy, whitespace, brand-aligned color schemes, and responsive behavior. Include animations, accessibility features, and theme options.",
+            "status": "pending",
+            "testStrategy": "Conduct usability testing sessions with stakeholders and sample users to validate design effectiveness and gather feedback for refinement."
+          },
+          {
+            "id": 4,
+            "title": "Implement Redesigned Chat UI Using React/Next.js and Tailwind CSS",
+            "description": "Refactor and modularize chat page components in React/Next.js, applying Tailwind CSS for styling and ensuring performance optimizations.",
+            "dependencies": [
+              3
+            ],
+            "details": "Develop modular components for input fields, message bubbles, avatars, quick replies, and multimedia support. Integrate animations, lazy-load assets, and minimize bundle size for fast load times.",
+            "status": "pending",
+            "testStrategy": "Manually test the implementation across devices and browsers for responsiveness, accessibility, and smooth operation of all interactive elements."
+          },
+          {
+            "id": 5,
+            "title": "Document New UI Structure, Styling Guidelines, and Maintenance Procedures",
+            "description": "Produce comprehensive documentation covering the new UI architecture, styling conventions, component usage, and guidelines for future updates.",
+            "dependencies": [
+              4
+            ],
+            "details": "Include annotated diagrams, code samples, accessibility checklists, and instructions for customizing branding and themes.",
+            "status": "pending",
+            "testStrategy": "Review documentation with development and design teams to ensure clarity, completeness, and ease of use for ongoing maintenance."
           }
         ]
       }
     ],
     "metadata": {
       "created": "2025-07-18T23:57:49.304Z",
-      "updated": "2025-07-19T01:09:57.472Z",
+      "updated": "2025-07-19T02:13:08.854Z",
       "description": "Tasks for master context"
     }
   }
