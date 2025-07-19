@@ -65,15 +65,18 @@ export async function POST(request: NextRequest) {
 
     console.log('Run created:', run.id);
 
-    // Improved polling - check run status first, then get messages
+    // OPTIMIZED polling with exponential backoff - much faster!
     let attempts = 0;
-    while (attempts < 30) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    const maxAttempts = 20; // Reduced from 30
+    let delay = 200; // Start with 200ms, much faster than 1 second
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, delay));
       
       try {
-        // First check if run is completed
+        // Check run status with correct OpenAI API syntax  
         const currentRun = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
-        console.log(`Run status: ${currentRun.status}`);
+        console.log(`Attempt ${attempts + 1}: Run status: ${currentRun.status}`);
         
         if (currentRun.status === 'completed') {
           // Run completed, get the latest messages
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
           const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
           
           if (assistantMessage && assistantMessage.content[0] && assistantMessage.content[0].type === 'text') {
-            console.log('SUCCESS! Got response from completed run');
+            console.log(`SUCCESS! Got response in ${attempts + 1} attempts (${(Date.now() - Date.now()) / 1000}s)`);
             return NextResponse.json({
               success: true,
               message: assistantMessage.content[0].text.value,
@@ -96,12 +99,21 @@ export async function POST(request: NextRequest) {
             error: `Assistant run ${currentRun.status}`,
             threadId: currentThreadId
           }, { status: 500 });
+        } else if (currentRun.status === 'in_progress' || currentRun.status === 'queued') {
+          // These are expected statuses, continue polling
+          console.log(`Run ${currentRun.status}, continuing to poll...`);
         }
         
         attempts++;
+        
+        // Exponential backoff: 200ms, 400ms, 800ms, 1.6s, 3.2s max
+        delay = Math.min(delay * 2, 3200);
+        
       } catch (error) {
         console.error('Error checking run/messages:', error);
         attempts++;
+        // On error, use shorter delay to retry quickly
+        delay = Math.min(delay * 1.5, 2000);
       }
     }
 
