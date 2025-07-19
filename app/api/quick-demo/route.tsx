@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     
     if (data.success && data.url) {
-      // Return HTML with clickable link
-      return new NextResponse(`
-        <html>
+      // Return HTML with clickable link - using proper Response syntax
+      return new Response(
+        `<html>
           <body style="font-family: Arial; padding: 20px;">
             <h2>✅ Fresh Demo Created!</h2>
             <p><strong>Demo URL:</strong></p>
@@ -33,33 +33,30 @@ export async function GET(request: NextRequest) {
             <hr>
             <p>Click the link above to test the chat functionality!</p>
           </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html' }
-      });
+        </html>`,
+        { headers: { 'Content-Type': 'text/html' } }
+      );
     } else {
-      return new NextResponse(`
-        <html>
+      return new Response(
+        `<html>
           <body style="font-family: Arial; padding: 20px;">
             <h2>❌ Demo Creation Failed</h2>
             <pre>${JSON.stringify(data, null, 2)}</pre>
           </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html' }
-      });
+        </html>`,
+        { headers: { 'Content-Type': 'text/html' } }
+      );
     }
 
   } catch (error) {
-    return new NextResponse(`
-      <html>
+    return new Response(
+      `<html>
         <body style="font-family: Arial; padding: 20px;">
           <h2>❌ Error</h2>
           <pre>${error}</pre>
         </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' }
-    });
+      </html>`,
+      { headers: { 'Content-Type': 'text/html' } }
+    );
   }
 } 
