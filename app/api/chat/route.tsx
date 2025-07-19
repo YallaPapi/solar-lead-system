@@ -1,8 +1,14 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { Redis } from '@upstash/redis';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
 });
 
 export async function POST(request: NextRequest) {
@@ -13,11 +19,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
     }
 
-    const { assistantId, message, threadId } = await request.json();
-    console.log('Chat API called with:', { assistantId, message, threadId });
+    const { assistantId, message, threadId, company, initialize } = await request.json();
+    console.log('Chat API called with:', { assistantId, message, threadId, company, initialize });
 
-    if (!assistantId || !message) {
-      return NextResponse.json({ error: 'Assistant ID and message are required' }, { status: 400 });
+    // Get assistant ID from company slug if not provided directly
+    let finalAssistantId = assistantId;
+    if (!finalAssistantId && company) {
+      try {
+        finalAssistantId = await redis.get(`company:${company}`);
+        console.log(`Retrieved assistant ID ${finalAssistantId} for company ${company}`);
+      } catch (error) {
+        console.error('Error retrieving assistant from Redis:', error);
+      }
+    }
+
+    if (!finalAssistantId) {
+      return NextResponse.json({ error: 'Assistant ID or company is required' }, { status: 400 });
+    }
+
+    // For initialization calls, message can be empty
+    if (!initialize && !message) {
+      return NextResponse.json({ error: 'Message is required for non-initialization calls' }, { status: 400 });
     }
 
     // Create or use existing thread
@@ -28,15 +50,17 @@ export async function POST(request: NextRequest) {
       console.log('Created thread:', currentThreadId);
     }
 
-    // Add user message to thread
-    await openai.beta.threads.messages.create(currentThreadId, {
-      role: 'user',
-      content: message
-    });
+    // Add user message to thread only if not initializing
+    if (!initialize && message) {
+      await openai.beta.threads.messages.create(currentThreadId, {
+        role: 'user',
+        content: message
+      });
+    }
 
     // Create run and immediately poll with a simplified approach
     const run = await openai.beta.threads.runs.create(currentThreadId, {
-      assistant_id: assistantId
+      assistant_id: finalAssistantId
     });
 
     console.log('Run created:', run.id);
@@ -62,7 +86,7 @@ export async function POST(request: NextRequest) {
             console.log('SUCCESS! Got response');
             return NextResponse.json({
               success: true,
-              response: latestMessage.content[0].text.value,
+              message: latestMessage.content[0].text.value,
               threadId: currentThreadId
             });
           }

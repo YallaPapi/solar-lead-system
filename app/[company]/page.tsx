@@ -39,22 +39,58 @@ export default function CompanyPage() {
 
   useEffect(() => {
     if (company) {
-      // Sample lead data for demo purposes
-      const sampleLeadData = {
-        firstName: 'John',
-        title: 'CEO',
-        city: 'Austin',
-        state: 'TX'
-      };
-
-      const openingMessage: Message = {
-        role: 'assistant',
-        content: `Hi ${sampleLeadData.firstName}, this is Sarah from ${formatCompanyName(company)}. I hope you're doing well! I'm reaching out because ${formatCompanyName(company)} recently showed interest in solar energy solutions. Are you still exploring ways to reduce your energy costs with solar?`,
-        timestamp: new Date()
-      };
-      setMessages([openingMessage]);
+      initializeChat();
     }
   }, [company]);
+
+  const initializeChat = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Request AI assistant's first message
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: '', // Empty message to trigger AI assistant's first message
+          threadId: null,
+          company: company,
+          initialize: true // Flag to indicate this is initialization
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.threadId) {
+        setThreadId(data.threadId);
+      }
+
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.message || `It's Sarah from ${formatCompanyName(company)} here. Is this the same John that got a Solar quote from us in the last couple of months?`,
+        timestamp: new Date()
+      };
+
+      setMessages([assistantMessage]);
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+      // Fallback to a proper solar message if API fails
+      const fallbackMessage: Message = {
+        role: 'assistant',
+        content: `It's Sarah from ${formatCompanyName(company)} here. Is this the same John that got a Solar quote from us in the last couple of months?`,
+        timestamp: new Date()
+      };
+      setMessages([fallbackMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
