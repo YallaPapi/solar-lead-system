@@ -6,11 +6,27 @@ const openai = new OpenAI({
 });
 
 export async function POST(request: NextRequest) {
+  console.log('=== CHAT API START ===');
+  
   try {
+    // Check environment variables first
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('MISSING OPENAI_API_KEY');
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured' },
+        { status: 500 }
+      );
+    }
+
     const { assistantId, message, threadId } = await request.json();
     console.log('Chat API called with:', { assistantId, message, threadId });
+    console.log('Environment check:', { 
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      keyLength: process.env.OPENAI_API_KEY?.length || 0 
+    });
 
     if (!assistantId || !message) {
+      console.error('Missing required fields:', { assistantId: !!assistantId, message: !!message });
       return NextResponse.json(
         { error: 'Assistant ID and message are required' },
         { status: 400 }
@@ -52,6 +68,7 @@ export async function POST(request: NextRequest) {
       // runStatus = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
       
       // Only retrieve the latest status
+      // @ts-ignore - OpenAI library typing issue
       const latestRun = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
       runStatus = latestRun;
       attempts++;
@@ -84,8 +101,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Chat error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Chat failed', details: error.message },
+      { error: 'Chat failed', details: errorMessage },
       { status: 500 }
     );
   }
