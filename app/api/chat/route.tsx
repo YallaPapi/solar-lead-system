@@ -65,36 +65,42 @@ export async function POST(request: NextRequest) {
 
     console.log('Run created:', run.id);
 
-    // Simple polling approach - wait a bit then check messages
+    // Improved polling - check run status first, then get messages
     let attempts = 0;
     while (attempts < 30) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Get messages instead of checking run status
       try {
-        const messages = await openai.beta.threads.messages.list(currentThreadId);
+        // First check if run is completed
+        const currentRun = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
+        console.log(`Run status: ${currentRun.status}`);
         
-        // Look for assistant response that's newer than our run
-        const assistantMessages = messages.data.filter(msg => 
-          msg.role === 'assistant' && 
-          new Date(msg.created_at * 1000) > new Date(run.created_at * 1000)
-        );
-
-        if (assistantMessages.length > 0) {
-          const latestMessage = assistantMessages[0];
-          if (latestMessage.content[0] && latestMessage.content[0].type === 'text') {
-            console.log('SUCCESS! Got response');
+        if (currentRun.status === 'completed') {
+          // Run completed, get the latest messages
+          const messages = await openai.beta.threads.messages.list(currentThreadId);
+          
+          // Get the most recent assistant message
+          const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
+          
+          if (assistantMessage && assistantMessage.content[0] && assistantMessage.content[0].type === 'text') {
+            console.log('SUCCESS! Got response from completed run');
             return NextResponse.json({
               success: true,
-              message: latestMessage.content[0].text.value,
+              message: assistantMessage.content[0].text.value,
               threadId: currentThreadId
             });
           }
+        } else if (currentRun.status === 'failed' || currentRun.status === 'cancelled' || currentRun.status === 'expired') {
+          console.error(`Run failed with status: ${currentRun.status}`);
+          return NextResponse.json({
+            error: `Assistant run ${currentRun.status}`,
+            threadId: currentThreadId
+          }, { status: 500 });
         }
         
         attempts++;
       } catch (error) {
-        console.error('Error checking messages:', error);
+        console.error('Error checking run/messages:', error);
         attempts++;
       }
     }
