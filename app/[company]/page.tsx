@@ -39,9 +39,17 @@ export default function CompanyPage() {
 
   useEffect(() => {
     if (company) {
+      // Sample lead data for demo purposes
+      const sampleLeadData = {
+        firstName: 'John',
+        title: 'CEO',
+        city: 'Austin',
+        state: 'TX'
+      };
+
       const openingMessage: Message = {
         role: 'assistant',
-        content: `Hey this is Sarah from ${formatCompanyName(company)}. Is this the same person that got a database reactivation quote from us in the last couple of months?`,
+        content: `Hey ${sampleLeadData.firstName}, this is Sarah from ${formatCompanyName(company)}. Is this the same person that got a database reactivation quote from us in the last couple of months?`,
         timestamp: new Date()
       };
       setMessages([openingMessage]);
@@ -151,7 +159,7 @@ export default function CompanyPage() {
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                   <h3 className="font-semibold text-blue-900 mb-2">🤖 How It Works</h3>
                   <p className="text-blue-800 text-sm leading-relaxed">
-                    This SMS agent automatically reaches out to your old leads with personalized messages. 
+                    This SMS agent automatically reaches out to your old leads with <strong>personalized messages</strong> using their name, company, and context. 
                     It engages them in natural conversation and works to book appointments for your sales team.
                   </p>
                 </div>
@@ -159,9 +167,19 @@ export default function CompanyPage() {
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                   <h3 className="font-semibold text-green-900 mb-2">💬 Try It Out</h3>
                   <p className="text-green-800 text-sm leading-relaxed">
-                    <strong>Act like a customer!</strong> Respond to Sarah's message on the phone. 
+                    <strong>Act like "John" (CEO from Austin, TX)!</strong> This demo shows a personalized message for a specific lead. 
                     Try different responses like "Yes, that was me" or "Tell me more" to see how the AI handles various scenarios.
                   </p>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-yellow-900 mb-2">👤 Demo Lead Profile</h3>
+                  <div className="text-yellow-800 text-sm space-y-1">
+                    <div><strong>Name:</strong> John</div>
+                    <div><strong>Title:</strong> CEO</div>
+                    <div><strong>Location:</strong> Austin, TX</div>
+                    <div><strong>Company:</strong> {formatCompanyName(company)}</div>
+                  </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-4">
