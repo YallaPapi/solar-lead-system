@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       organization_short_description = body.organization_short_description || '';
       industry = body.industry || '';
       
-      client_company_name = 'Solar Bookers';
+      client_company_name = organization_name;
       client_website = 'https://solarbookers.com';
       service_type = 'Solar installation and consultation services';
     } else {
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       state = body.state || (body.location ? body.location.split(',')[1]?.trim() : '');
       organization_short_description = body.organization_short_description || '';
       industry = body.industry || '';
-      client_company_name = body.client_company_name || 'Solar Bookers';
+      client_company_name = body.client_company_name || organization_name;
       client_website = body.client_website || 'https://solarbookers.com';
       service_type = body.service_type || "Solar installation and consultation services";
     }
