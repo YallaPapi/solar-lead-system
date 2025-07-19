@@ -127,24 +127,19 @@ FAQ:
       tools: [{ type: "code_interpreter" }]
     });
 
-  // Use provided domain or smart detection for Vercel/production
-  let host = body.domain;
+  // Use the new domain detection utility for Vercel-aware domain detection
+  const { generateFullUrl, logDomainDetection } = await import('../../../lib/domain-utils');
   
-  if (!host) {
-    // Check Vercel headers first, then fallback to standard headers
-    const vercelUrl = request.headers.get('x-vercel-forwarded-host') || 
-                     request.headers.get('x-forwarded-host') ||
-                     request.headers.get('host');
-    host = vercelUrl || 'solarbookers.com';
-  }
+  // Log domain detection for debugging
+  logDomainDetection(request, 'create-prototype');
   
-  const protocol = host.includes('localhost') ? 'http' : 'https';
-  const demoUrl = `${protocol}://${host}/${companySlug}`;
+  // Generate demo URL using the smart domain detection
+  const demoUrl = generateFullUrl(request, companySlug);
   
-  console.log('Domain detection:', { 
-    providedDomain: body.domain,
-    detectedHost: host,
-    finalDemoUrl: demoUrl 
+  console.log('Demo URL generated:', { 
+    companySlug,
+    demoUrl,
+    providedDomain: body.domain 
   });
 
     // Store the assistant mapping for this company using direct Redis call

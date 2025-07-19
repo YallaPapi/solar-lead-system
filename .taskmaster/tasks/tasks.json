@@ -327,11 +327,81 @@
         ],
         "status": "done",
         "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Create Fresh Demo for Vercel Preview Domain with Working Chat API",
+        "description": "Develop a new demo instance that uses the correct Vercel preview domain and ensures chat functionality works with OpenAI threads, replacing the outdated hardcoded domain demo.",
+        "details": "1. Remove or archive the existing /test-solar demo that uses the hardcoded solarbookers.com domain.\n2. Implement logic to dynamically detect and use the current Vercel preview deployment domain (e.g., leveraging Vercel environment variables such as VERCEL_URL or NEXT_PUBLIC_ROOT_DOMAIN for preview environments).\n3. Update the demo creation workflow to generate URLs and API endpoints based on the detected preview domain, ensuring all links and callbacks function correctly in preview deployments.\n4. Refactor the chat API integration to ensure it works seamlessly with OpenAI threads, using the latest OpenAI API best practices for thread management, error handling, and streaming responses.\n5. Ensure all environment variables required for preview deployments are set and documented (e.g., NEXT_PUBLIC_ROOT_DOMAIN, OpenAI keys).\n6. Add automated checks to validate that the chat API is functional in preview deployments, including thread creation, message exchange, and error handling.\n7. Document the process for creating and testing preview demos, including how to verify correct domain usage and chat functionality.\n\nBest practices:\n- Use Vercel's environment variable management to distinguish between production and preview deployments, setting domain-specific variables as needed[2][4].\n- Ensure all URLs are generated dynamically based on the deployment context, avoiding hardcoded domains[2][3].\n- Follow OpenAI's latest recommendations for thread lifecycle management and robust error handling.\n- Consider adding integration tests that run automatically on preview deployments to catch domain or API issues early.",
+        "testStrategy": "- Deploy a preview instance to Vercel and verify that the demo uses the correct preview domain in all URLs and API calls.\n- Test chat functionality end-to-end: initiate a chat, send/receive messages, and confirm OpenAI thread creation and persistence.\n- Simulate API failures and verify error handling and user feedback.\n- Check that environment variables (e.g., NEXT_PUBLIC_ROOT_DOMAIN) are correctly set and used in the preview environment.\n- Use the integration test suite and debug endpoint to validate all related components (Redis, OpenAI, environment config) in the context of the new demo.\n- Review deployment logs for any domain or API-related errors.",
+        "status": "pending",
+        "dependencies": [
+          13,
+          14,
+          15,
+          16
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Remove or Archive Outdated Hardcoded Domain Demo",
+            "description": "Remove or archive the existing /test-solar demo that uses the hardcoded solarbookers.com domain to prevent confusion and ensure only the new dynamic demo is available.",
+            "dependencies": [],
+            "details": "Locate the /test-solar demo in the codebase and either delete it or move it to an archive directory. Update any documentation or links referencing this demo.",
+            "status": "done",
+            "testStrategy": "Verify that the /test-solar route is no longer accessible in any deployment and that no references to the hardcoded domain remain."
+          },
+          {
+            "id": 2,
+            "title": "Implement Dynamic Detection of Vercel Preview Domain",
+            "description": "Add logic to dynamically detect and use the current Vercel preview deployment domain using environment variables such as VERCEL_URL or NEXT_PUBLIC_ROOT_DOMAIN.",
+            "dependencies": [
+              1
+            ],
+            "details": "Update server and client code to reference the correct environment variables for the deployment context. Ensure that URLs are generated based on the detected preview domain, not hardcoded values.[1][3][4]\n<info added on 2025-07-19T01:02:15.966Z>\nCreated domain detection utilities in lib/domain-utils.ts and app/api/domain-info/route.tsx that prioritize Vercel-specific headers (x-vercel-deployment-url, x-vercel-forwarded-host) and environment variables (VERCEL_URL) for accurate preview domain detection. These utilities should now be integrated into the create-prototype endpoint to replace the existing hardcoded domain logic. This will ensure that all generated URLs and API endpoints dynamically adapt to the current deployment context, whether it's a Vercel preview environment or production.\n</info added on 2025-07-19T01:02:15.966Z>\n<info added on 2025-07-19T01:03:16.114Z>\nSuccessfully integrated the domain detection utilities into both app/api/create-prototype/route.tsx and app/api/test-create-demo/route.tsx. The research confirmed that our priority order (x-vercel-deployment-url → x-vercel-forwarded-host → VERCEL_URL → host) follows Vercel best practices. Both endpoints now use generateFullUrl() and logDomainDetection() from lib/domain-utils.ts for consistent, Vercel-aware domain detection.\n</info added on 2025-07-19T01:03:16.114Z>",
+            "status": "done",
+            "testStrategy": "Deploy to a preview environment and confirm that all generated URLs and API endpoints use the correct preview domain."
+          },
+          {
+            "id": 3,
+            "title": "Update Demo Creation Workflow for Dynamic URLs and API Endpoints",
+            "description": "Refactor the demo creation workflow to generate all URLs and API endpoints based on the dynamically detected preview domain, ensuring correct link and callback functionality.",
+            "dependencies": [
+              2
+            ],
+            "details": "Modify the workflow logic to use the detected domain for all generated links, API calls, and callbacks. Remove any remaining hardcoded domain references.",
+            "status": "in-progress",
+            "testStrategy": "Create a new demo instance in a preview deployment and verify that all links and API endpoints function correctly and use the preview domain."
+          },
+          {
+            "id": 4,
+            "title": "Refactor Chat API Integration for OpenAI Threads",
+            "description": "Update the chat API integration to ensure seamless operation with OpenAI threads, following the latest best practices for thread management, error handling, and streaming responses.",
+            "dependencies": [
+              3
+            ],
+            "details": "Review and refactor the chat API code to use the latest OpenAI API thread management methods. Implement robust error handling and support for streaming responses as recommended by OpenAI.",
+            "status": "pending",
+            "testStrategy": "Test chat functionality end-to-end in a preview deployment, including thread creation, message exchange, and error handling."
+          },
+          {
+            "id": 5,
+            "title": "Document and Validate Environment Variables and Demo Workflow",
+            "description": "Ensure all required environment variables for preview deployments are set and documented. Add automated checks to validate chat API functionality and document the process for creating and testing preview demos.",
+            "dependencies": [
+              4
+            ],
+            "details": "List and describe all necessary environment variables (e.g., NEXT_PUBLIC_ROOT_DOMAIN, OpenAI keys). Implement automated tests to check chat API functionality in preview deployments. Write clear documentation for the demo creation and testing process.",
+            "status": "pending",
+            "testStrategy": "Run automated checks in preview deployments to confirm environment variables are set and chat API is functional. Review documentation for completeness and clarity."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-07-18T23:57:49.304Z",
-      "updated": "2025-07-19T00:23:16.967Z",
+      "updated": "2025-07-19T01:03:26.810Z",
       "description": "Tasks for master context"
     }
   }

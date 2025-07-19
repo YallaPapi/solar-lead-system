@@ -2,14 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the current domain from the request
-    const host = request.headers.get('x-vercel-forwarded-host') || 
-                 request.headers.get('x-forwarded-host') ||
-                 request.headers.get('host') || 
-                 'localhost:3000';
+    // Use the new domain detection utility
+    const { getCurrentDomain, detectDomain } = await import('../../../lib/domain-utils');
     
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const currentDomain = `${protocol}://${host}`;
+    const currentDomain = getCurrentDomain(request);
+    const host = detectDomain(request);
     
     console.log('Test demo creation with domain:', currentDomain);
     
