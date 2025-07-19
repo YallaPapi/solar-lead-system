@@ -1,67 +1,115 @@
 # Task ID: 13
 # Title: Align URL Generation Algorithm
-# Status: pending
+# Status: done
 # Dependencies: 11, 12
 # Priority: high
-# Description: Ensure URL generation is consistent between n8n and API by implementing a standardized slug generation algorithm across all components.
+# Description: Ensure URL generation is consistent between n8n workflow and API endpoints by implementing identical slug generation algorithms.
 # Details:
-Create a unified URL generation utility that ensures consistency across all system components:
-
-1. Extract the current URL generation logic from both n8n workflow and API endpoints
-2. Create a standardized utility function for slug generation
-3. Update all components to use this unified approach
-4. Ensure proper handling of special characters and edge cases
-
-Implementation:
+1. Create a shared utility function for slug generation that matches n8n's algorithm exactly:
 
 ```javascript
-// lib/utils/slugify.js
-/**
- * Generates a consistent URL slug from a company name
- * @param {string} companyName - The company name to slugify
- * @return {string} The generated slug
- */
+// utils/slugUtils.js
 export function generateSlug(companyName) {
-  if (!companyName) throw new Error('Company name is required for slug generation')
+  if (!companyName) return '';
   
-  // Convert to lowercase
-  let slug = companyName.toLowerCase()
-  
-  // Replace special characters with hyphens
-  slug = slug.replace(/[^a-z0-9]+/g, '-')
-  
-  // Remove leading and trailing hyphens
-  slug = slug.replace(/^-+|-+$/g, '')
-  
-  // Ensure slug is not empty
-  if (!slug) slug = 'company'
-  
-  return slug
+  return companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-/**
- * Generates a full demo URL from a company name
- * @param {string} companyName - The company name
- * @return {string} The complete demo URL
- */
 export function generateDemoUrl(companyName) {
-  const slug = generateSlug(companyName)
-  return `https://solarbookers.com/${slug}`
+  const slug = generateSlug(companyName);
+  return `https://solarbookers.com/${slug}`;
 }
 ```
 
-Update all relevant components to use this utility:
+2. Update all API endpoints to use this shared utility:
 
-1. Modify `/api/create-prototype` to use the standardized slug generation
-2. Update any client-side URL generation code
-3. Document the expected URL format for n8n workflow configuration
-4. Create a reference implementation for n8n to ensure consistency
+```javascript
+// pages/api/create-prototype.js
+import { generateSlug, generateDemoUrl } from '../../utils/slugUtils';
 
-Add validation to ensure URLs are properly formed and accessible.
+export default async function handler(req, res) {
+  try {
+    const companyName = req.body.companyName || req.body.company_name || req.body.company;
+    // ... other field extractions
+    
+    const companySlug = generateSlug(companyName);
+    const demoUrl = generateDemoUrl(companyName);
+    
+    // ... rest of function
+  } catch (error) {
+    // ... error handling
+  }
+}
+```
+
+3. Update the demo page to use the same slug parsing:
+
+```javascript
+// pages/[companySlug].js
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+
+export default function CompanyDemo() {
+  const router = useRouter();
+  const { companySlug } = router.query;
+  const [assistantId, setAssistantId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    if (!companySlug) return;
+    
+    async function fetchAssistant() {
+      try {
+        const response = await fetch(`/api/company-assistant?companySlug=${companySlug}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load assistant');
+        }
+        
+        setAssistantId(data.assistantId);
+      } catch (error) {
+        console.error('Error loading assistant:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchAssistant();
+  }, [companySlug]);
+  
+  // ... rest of component
+}
+```
+
+4. Create a test endpoint to validate URL generation consistency:
+
+```javascript
+// pages/api/test/url-generation.js
+import { generateSlug, generateDemoUrl } from '../../../utils/slugUtils';
+
+export default function handler(req, res) {
+  const { companyName } = req.query;
+  
+  if (!companyName) {
+    return res.status(400).json({ error: 'Company name is required' });
+  }
+  
+  const slug = generateSlug(companyName);
+  const demoUrl = generateDemoUrl(companyName);
+  
+  return res.status(200).json({
+    companyName,
+    slug,
+    demoUrl
+  });
+}
+```
 
 # Test Strategy:
-1. Create test cases with various company names including special characters, spaces, and edge cases
-2. Verify that the same input consistently produces the same slug across all components
-3. Test URL generation with international characters and ensure proper handling
-4. Validate that generated URLs are valid and accessible
-5. Create a test suite that compares n8n-generated URLs with API-generated URLs to ensure consistency
+Test URL generation with a variety of company names, including those with special characters, spaces, and capitalization. Compare results with n8n-generated URLs to ensure they match exactly. Test edge cases like empty strings, very long names, and names with only special characters. Verify that demo URLs generated by both systems resolve to the same page.

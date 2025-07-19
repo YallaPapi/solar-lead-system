@@ -1,61 +1,51 @@
 # Task ID: 11
 # Title: Analyze N8N Workflow and Document Field Mappings
-# Status: pending
+# Status: done
 # Dependencies: 9
 # Priority: high
-# Description: Analyze the n8n workflow JSON to understand the exact data flow and field mappings, documenting current vs. expected behavior at each integration point.
+# Description: Analyze the n8n workflow JSON to understand exact data flow and field mappings, documenting current vs. expected behavior at each integration point.
 # Details:
-Create a comprehensive analysis document that maps the n8n workflow fields to API expectations:
+1. Extract and analyze the n8n workflow JSON to identify all field names and data structures:
+   - Extract webhook payload structure
+   - Document field transformations within n8n
+   - Identify field names used when calling API endpoints
 
-1. Extract and analyze the n8n workflow JSON structure
-2. Document all field names used in the workflow
-3. Map these to the expected field names in the API endpoints
-4. Identify discrepancies in field naming or data formats
-5. Create a reference table for field mapping alignment
+2. Create a comprehensive mapping document that shows:
+   - Original field names from webhook source
+   - Transformed field names within n8n workflow
+   - Expected field names by API endpoints
+   - Any discrepancies or mismatches
 
-Implementation steps:
-
-1. Export the complete n8n workflow JSON
-2. Parse the JSON to extract node configurations, especially for HTTP Request nodes
-3. Document the payload structure at each step of the workflow
-4. Compare with API endpoint expectations
-5. Create a mapping document with the following structure:
-
+3. Document the exact URL generation logic used in n8n:
 ```javascript
-// Field mapping documentation
-const fieldMappings = {
-  // N8N field name -> API expected field name
-  'company_name': 'companyName',
-  'contact_name': 'contactName',
-  'email_address': 'email',
-  'phone_number': 'phone',
-  'location_data': 'location',
-  // Add all other fields
+// Example of current n8n URL generation logic (to be extracted from workflow):
+function generateSlug(companyName) {
+  return companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-// Data transformation examples
-const transformations = {
-  'location_data': (value) => {
-    // Example of how to transform n8n location format to API expected format
-    if (typeof value === 'object') {
-      return `${value.city}, ${value.state}`
-    }
-    return value
-  },
-  // Add other transformations
+function generateDemoUrl(companyName) {
+  const slug = generateSlug(companyName);
+  return `https://solarbookers.com/${slug}`;
 }
 ```
 
-Create a detailed flow diagram showing:
-1. Webhook trigger and data structure
-2. AI qualification step and data transformation
-3. Demo creation API call and payload
-4. Instantly.ai email integration and required fields
-5. Points of failure and proposed fixes
+4. Create a detailed flow diagram showing:
+   - Webhook trigger and data structure
+   - AI qualification step and data transformation
+   - Demo creation API call with field mappings
+   - Email sending via Instantly.ai with field mappings
+   - Expected user journey through demo site
+
+5. Document all identified issues and discrepancies:
+   - Field name mismatches between n8n and API
+   - URL generation inconsistencies
+   - Data format differences
+   - Missing required fields
+
+Output should be a comprehensive markdown document with code examples, diagrams, and tables showing exact field mappings.
 
 # Test Strategy:
-1. Validate field mapping document against actual n8n workflow configuration
-2. Test data transformations with sample payloads from n8n
-3. Review with stakeholders to ensure all field mappings are correctly identified
-4. Create test cases for each identified discrepancy
-5. Verify that the documented transformations resolve the identified issues
+Review the documentation with the development team to ensure accuracy. Validate field mappings against actual API endpoint code. Test URL generation logic from both n8n and API to confirm they produce identical results. Use the documentation to guide implementation of fixes in subsequent tasks.

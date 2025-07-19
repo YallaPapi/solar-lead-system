@@ -1,202 +1,276 @@
 # Task ID: 15
-# Title: Fix OpenAI Threading and Chat API
-# Status: pending
+# Title: Fix OpenAI Chat Integration
+# Status: done
 # Dependencies: 14
-# Priority: medium
-# Description: Resolve OpenAI threading and timeout issues in the chat API to ensure stable AI chat functionality for demo sites.
+# Priority: high
+# Description: Resolve OpenAI threading and timeout issues in the chat API, improving error handling and retry logic for API failures.
 # Details:
-Enhance the chat API endpoint to handle OpenAI Assistant API interactions reliably:
+1. Create a robust OpenAI client utility with error handling:
 
-1. Implement proper thread management for OpenAI conversations
-2. Add timeout handling and retry logic for API calls
-3. Improve error handling for various failure scenarios
-4. Implement thread cleanup to prevent resource exhaustion
+```javascript
+// utils/openai.js
+import OpenAI from 'openai';
 
-Implementation:
+let openaiClient = null;
+
+export function getOpenAIClient() {
+  if (openaiClient) return openaiClient;
+  
+  openaiClient = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: 30000, // 30 second timeout
+    maxRetries: 3,
+  });
+  
+  return openaiClient;
+}
+
+export async function createThread() {
+  const openai = getOpenAIClient();
+  
+  try {
+    const thread = await openai.beta.threads.create();
+    return thread.id;
+  } catch (error) {
+    console.error('Error creating thread:', error);
+    throw new Error(`Failed to create thread: ${error.message}`);
+  }
+}
+
+export async function addMessageToThread(threadId, message) {
+  const openai = getOpenAIClient();
+  
+  try {
+    const response = await openai.beta.threads.messages.create(
+      threadId,
+      { role: 'user', content: message }
+    );
+    return response;
+  } catch (error) {
+    console.error(`Error adding message to thread ${threadId}:`, error);
+    throw new Error(`Failed to add message: ${error.message}`);
+  }
+}
+
+export async function runAssistant(threadId, assistantId) {
+  const openai = getOpenAIClient();
+  
+  try {
+    const run = await openai.beta.threads.runs.create(
+      threadId,
+      { assistant_id: assistantId }
+    );
+    return run.id;
+  } catch (error) {
+    console.error(`Error running assistant ${assistantId} on thread ${threadId}:`, error);
+    throw new Error(`Failed to run assistant: ${error.message}`);
+  }
+}
+
+export async function waitForRunCompletion(threadId, runId, maxAttempts = 10) {
+  const openai = getOpenAIClient();
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const run = await openai.beta.threads.runs.retrieve(threadId, runId);
+      
+      if (run.status === 'completed') {
+        return run;
+      }
+      
+      if (run.status === 'failed' || run.status === 'cancelled' || run.status === 'expired') {
+        throw new Error(`Run failed with status: ${run.status}`);
+      }
+      
+      // Wait before checking again
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      attempts++;
+    } catch (error) {
+      console.error(`Error checking run status for ${runId}:`, error);
+      throw new Error(`Failed to check run status: ${error.message}`);
+    }
+  }
+  
+  throw new Error('Run timed out');
+}
+
+export async function getThreadMessages(threadId) {
+  const openai = getOpenAIClient();
+  
+  try {
+    const messages = await openai.beta.threads.messages.list(threadId);
+    return messages.data;
+  } catch (error) {
+    console.error(`Error retrieving messages for thread ${threadId}:`, error);
+    throw new Error(`Failed to retrieve messages: ${error.message}`);
+  }
+}
+```
+
+2. Update the chat API endpoint to use the improved OpenAI utilities:
 
 ```javascript
 // pages/api/chat.js
-import OpenAI from 'openai'
-import { getCompanyAssistant } from '../../lib/redis'
-
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
-// Maximum retries for OpenAI API calls
-const MAX_RETRIES = 3
-// Timeout for run completion (in milliseconds)
-const RUN_TIMEOUT = 60000
-
-/**
- * Retry an OpenAI API call with exponential backoff
- * @param {Function} apiCall - The API call function to retry
- * @param {number} maxRetries - Maximum number of retries
- * @returns {Promise} - Result of the API call
- */
-async function retryWithBackoff(apiCall, maxRetries = MAX_RETRIES) {
-  let lastError
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await apiCall()
-    } catch (error) {
-      console.error(`API call failed (attempt ${attempt + 1}/${maxRetries}):`, error)
-      lastError = error
-      
-      // Only retry on specific error types
-      if (!error.status || ![429, 500, 502, 503, 504].includes(error.status)) {
-        throw error
-      }
-      
-      // Exponential backoff
-      const delay = Math.min(1000 * Math.pow(2, attempt), 10000)
-      await new Promise(resolve => setTimeout(resolve, delay))
-    }
-  }
-  
-  throw lastError
-}
-
-/**
- * Wait for run completion with timeout
- * @param {string} threadId - OpenAI thread ID
- * @param {string} runId - OpenAI run ID
- * @param {number} timeout - Timeout in milliseconds
- * @returns {object} - Completed run
- */
-async function waitForRunCompletion(threadId, runId, timeout = RUN_TIMEOUT) {
-  const startTime = Date.now()
-  
-  while (Date.now() - startTime < timeout) {
-    const run = await retryWithBackoff(() => 
-      openai.beta.threads.runs.retrieve(threadId, runId)
-    )
-    
-    if (run.status === 'completed') {
-      return run
-    }
-    
-    if (['failed', 'cancelled', 'expired'].includes(run.status)) {
-      throw new Error(`Run failed with status: ${run.status}`)
-    }
-    
-    // Wait before checking again
-    await new Promise(resolve => setTimeout(resolve, 1000))
-  }
-  
-  throw new Error('Run timed out')
-}
+import { getAssistantId } from '../../utils/redis';
+import { 
+  createThread, 
+  addMessageToThread, 
+  runAssistant, 
+  waitForRunCompletion, 
+  getThreadMessages 
+} from '../../utils/openai';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  const { message, threadId, slug } = req.body
+  const { companySlug, message, threadId: existingThreadId } = req.body;
   
-  if (!message) {
-    return res.status(400).json({ error: 'Message is required' })
-  }
-  
-  if (!slug && !threadId) {
-    return res.status(400).json({ error: 'Either slug or threadId is required' })
+  if (!companySlug || !message) {
+    return res.status(400).json({ error: 'Company slug and message are required' });
   }
   
   try {
-    let assistantId
-    let currentThreadId = threadId
+    // Get assistant ID from Redis
+    const assistantId = await getAssistantId(companySlug);
     
-    // If no threadId provided, create a new thread and get assistant ID from slug
-    if (!currentThreadId) {
-      const companyData = await getCompanyAssistant(slug)
-      
-      if (!companyData || !companyData.assistantId) {
-        return res.status(404).json({ error: 'Company or assistant not found' })
-      }
-      
-      assistantId = companyData.assistantId
-      
-      // Create a new thread
-      const thread = await retryWithBackoff(() => 
-        openai.beta.threads.create()
-      )
-      currentThreadId = thread.id
-    } else {
-      // Get assistant ID from the first message in the thread
-      const messages = await retryWithBackoff(() => 
-        openai.beta.threads.messages.list(currentThreadId, { limit: 1 })
-      )
-      
-      const run = await retryWithBackoff(() => 
-        openai.beta.threads.runs.list(currentThreadId, { limit: 1 })
-      )
-      
-      if (run.data.length > 0) {
-        assistantId = run.data[0].assistant_id
-      } else {
-        // Fallback to getting assistant from slug
-        const companyData = await getCompanyAssistant(slug)
-        if (!companyData || !companyData.assistantId) {
-          return res.status(404).json({ error: 'Assistant not found for this thread' })
-        }
-        assistantId = companyData.assistantId
-      }
+    if (!assistantId) {
+      return res.status(404).json({ error: 'No assistant found for this company' });
     }
     
-    // Add the user message to the thread
-    await retryWithBackoff(() => 
-      openai.beta.threads.messages.create(currentThreadId, {
-        role: 'user',
-        content: message
-      })
-    )
+    // Create or use existing thread
+    const threadId = existingThreadId || await createThread();
+    
+    // Add message to thread
+    await addMessageToThread(threadId, message);
     
     // Run the assistant
-    const run = await retryWithBackoff(() => 
-      openai.beta.threads.runs.create(currentThreadId, {
-        assistant_id: assistantId
-      })
-    )
+    const runId = await runAssistant(threadId, assistantId);
     
-    // Wait for the run to complete
-    await waitForRunCompletion(currentThreadId, run.id)
+    // Wait for completion
+    await waitForRunCompletion(threadId, runId);
     
-    // Get the latest messages
-    const messages = await retryWithBackoff(() => 
-      openai.beta.threads.messages.list(currentThreadId, { limit: 10 })
-    )
+    // Get messages
+    const messages = await getThreadMessages(threadId);
     
-    // Find the latest assistant message
-    const assistantMessages = messages.data
-      .filter(msg => msg.role === 'assistant')
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    
-    if (assistantMessages.length === 0) {
-      return res.status(404).json({ error: 'No assistant response found' })
-    }
-    
-    const latestMessage = assistantMessages[0]
+    // Find assistant's response (most recent assistant message)
+    const assistantMessages = messages.filter(msg => msg.role === 'assistant');
+    const latestResponse = assistantMessages[0]?.content[0]?.text?.value || 'No response from assistant';
     
     return res.status(200).json({
-      threadId: currentThreadId,
-      message: latestMessage.content[0].text.value,
-      messageId: latestMessage.id
-    })
+      response: latestResponse,
+      threadId,
+      assistantId
+    });
   } catch (error) {
-    console.error('Chat API error:', error)
-    return res.status(500).json({
-      error: 'Failed to process chat message',
-      details: error.message
-    })
+    console.error('Error in chat API:', error);
+    return res.status(500).json({ 
+      error: error.message,
+      threadId: existingThreadId
+    });
+  }
+}
+```
+
+3. Add a streaming version of the chat API for better user experience:
+
+```javascript
+// pages/api/chat-stream.js
+import { getAssistantId } from '../../utils/redis';
+import { 
+  createThread, 
+  addMessageToThread, 
+  runAssistant,
+  getOpenAIClient
+} from '../../utils/openai';
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+  
+  const { companySlug, message, threadId: existingThreadId } = req.body;
+  
+  if (!companySlug || !message) {
+    return res.status(400).json({ error: 'Company slug and message are required' });
+  }
+  
+  // Set up SSE
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+  
+  try {
+    // Get assistant ID from Redis
+    const assistantId = await getAssistantId(companySlug);
+    
+    if (!assistantId) {
+      res.write(`data: ${JSON.stringify({ error: 'No assistant found for this company' })}\n\n`);
+      return res.end();
+    }
+    
+    // Create or use existing thread
+    const threadId = existingThreadId || await createThread();
+    res.write(`data: ${JSON.stringify({ threadId })}\n\n`);
+    
+    // Add message to thread
+    await addMessageToThread(threadId, message);
+    
+    // Run the assistant
+    const openai = getOpenAIClient();
+    const run = await openai.beta.threads.runs.create(
+      threadId,
+      { assistant_id: assistantId }
+    );
+    
+    // Stream the response
+    let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+    
+    while (runStatus.status !== 'completed' && 
+           runStatus.status !== 'failed' && 
+           runStatus.status !== 'cancelled' && 
+           runStatus.status !== 'expired') {
+      
+      res.write(`data: ${JSON.stringify({ status: runStatus.status })}\n\n`);
+      
+      // Wait before checking again
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+    }
+    
+    if (runStatus.status === 'completed') {
+      const messages = await openai.beta.threads.messages.list(threadId);
+      const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');
+      const latestResponse = assistantMessages[0]?.content[0]?.text?.value || 'No response from assistant';
+      
+      res.write(`data: ${JSON.stringify({ 
+        status: 'completed', 
+        response: latestResponse,
+        threadId
+      })}\n\n`);
+    } else {
+      res.write(`data: ${JSON.stringify({ 
+        status: runStatus.status, 
+        error: 'Assistant run failed',
+        threadId
+      })}\n\n`);
+    }
+    
+    res.end();
+  } catch (error) {
+    console.error('Error in chat stream API:', error);
+    res.write(`data: ${JSON.stringify({ 
+      error: error.message,
+      threadId: existingThreadId
+    })}\n\n`);
+    res.end();
   }
 }
 ```
 
 # Test Strategy:
-1. Test chat functionality with various message types and lengths
-2. Verify thread creation and management works correctly
-3. Test timeout handling by simulating slow responses
-4. Validate retry logic by temporarily introducing API failures
-5. Test thread continuity across multiple messages
-6. Verify error handling for various failure scenarios
-7. Load test with multiple concurrent chat sessions
+Test the chat API with various messages and company slugs. Verify that threads are created and maintained correctly. Test error handling by simulating OpenAI API failures. Measure response times to ensure they're within acceptable limits. Test the streaming API to verify it provides real-time updates. Verify that chat history is maintained correctly across multiple messages in a thread.

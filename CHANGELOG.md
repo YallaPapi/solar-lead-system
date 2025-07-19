@@ -7,6 +7,62 @@
 
 ## 🏷️ VERSION HISTORY
 
+### v1.2.0 - 2025-07-19 (IPHONE UI + PRODUCTION SYSTEM)
+**Status**: 🎯 FULLY OPERATIONAL  
+**Branch**: `main` (Production Ready)
+
+#### 🎨 MAJOR UI REDESIGN
+- **COMPLETE IPHONE MESSAGES INTERFACE**: Authentic iPhone device frame with notch, status bar, home indicator
+- **PROFESSIONAL BRANDING**: Two-column layout with company-specific branding and demo instructions
+- **REALISTIC PERSONALIZATION**: Demo shows personalized SMS messages with lead names (e.g., "Hey John, this is Sarah from Tesla...")
+- **AUTHENTIC STYLING**: Proper blue #007AFF user bubbles, gray #E9E9EB assistant bubbles, SF Pro typography
+- **DEVICE MOCKUP**: 375x812px iPhone dimensions with authentic Messages app styling
+
+#### 🔧 PRODUCTION SYSTEM FIXES
+- **DOMAIN MIGRATION**: Fixed all endpoints to use `solarbookers.com` instead of Vercel preview URLs
+- **N8N INTEGRATION**: Resolved duplicate URL and signature issues in workflow
+- **CALENDLY INTEGRATION**: AI now includes calendar booking links directly in responses
+- **URL GENERATION**: Production domain detection ensures n8n always gets production URLs
+
+#### 🐛 CRITICAL BUGS FIXED
+- **Duplicate Demo URLs**: Removed workflow duplication causing 2 URLs per email
+- **Wrong Domain URLs**: Fixed API returning Vercel preview URLs instead of production
+- **Duplicate Signatures**: Cleaned up multiple "Sent from my iPhone" signatures
+- **Branch Deployment**: Resolved branch/domain mismatch (preview vs production)
+
+#### ✨ NEW FEATURES
+- **Branded Demo Platform**: Company-specific logos, names, and instructions
+- **Lead Profile Display**: Shows demo lead data (John, CEO, Austin TX)
+- **Professional Instructions**: Clear guidance for prospects to engage with demo
+- **Authentic SMS Flow**: Realistic conversation starters and objection handling
+
+#### 📊 WHAT'S WORKING
+- ✅ Complete iPhone Messages UI with device frame
+- ✅ Production domain integration (solarbookers.com)
+- ✅ n8n workflow end-to-end functionality
+- ✅ Personalized lead messaging
+- ✅ Calendly booking integration
+- ✅ Professional branded demo pages
+- ✅ OpenAI assistant with proper instructions
+- ✅ Database reactivation conversation flow
+
+#### 🎯 SYSTEM STATUS
+- **Demo Creation**: `https://solarbookers.com/api/create-prototype` ✅
+- **Chat Interface**: iPhone Messages UI ✅
+- **Lead Qualification**: AI SMS conversation ✅  
+- **Calendar Booking**: Calendly integration ✅
+- **Company Branding**: Dynamic per company ✅
+- **Production URLs**: All endpoints use solarbookers.com ✅
+
+#### 🔄 WORKFLOW INTEGRATION
+- n8n calls `create-prototype` API ✅
+- Creates branded demo at `solarbookers.com/[company]` ✅
+- AI includes demo + calendar links in email ✅
+- Lead clicks → sees iPhone SMS demo ✅
+- Lead chats → connects to OpenAI assistant ✅
+
+---
+
 ### v1.1.0 - 2025-07-19 (CHAT API FIX)
 **Status**: ✅ WORKING  
 **Branch**: `claude-cursor-integration`

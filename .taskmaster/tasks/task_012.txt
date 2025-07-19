@@ -1,119 +1,101 @@
 # Task ID: 12
-# Title: Fix API Endpoints for N8N Field Mapping
-# Status: pending
+# Title: Fix API Endpoints to Handle N8N Field Mappings
+# Status: done
 # Dependencies: 11
 # Priority: high
-# Description: Update API endpoints to handle the exact field names from n8n workflow payload, ensuring proper parsing and processing of incoming data.
+# Description: Update API endpoints to correctly handle the exact field names and data structures sent from the n8n workflow payload.
 # Details:
-Modify the API endpoints to correctly handle n8n field names and data formats:
+Based on the field mapping analysis, update the following API endpoints to properly handle n8n payload fields:
 
-1. Update `/api/create-prototype` endpoint to accept n8n field names
-2. Implement field name normalization to handle variations
-3. Add robust error handling for missing or malformed fields
-4. Ensure backward compatibility with existing integrations
-
-Implementation:
-
+1. Update the `/api/create-prototype` endpoint to accept n8n field names:
 ```javascript
 // pages/api/create-prototype.js
-import { Redis } from '@upstash/redis'
-import OpenAI from 'openai'
-
-// Field mapping from n8n to internal format
-const fieldMap = {
-  'company_name': 'companyName',
-  'contact_name': 'contactName',
-  'email_address': 'email',
-  'phone_number': 'phone',
-  'location_data': 'location',
-  // Add all other mappings based on analysis
-}
-
-// Normalize incoming data to expected format
-function normalizeData(data) {
-  const normalized = {}
-  
-  // Handle both direct fields and nested data structure from n8n
-  const sourceData = data.data || data
-  
-  // Process each field with mapping
-  Object.entries(sourceData).forEach(([key, value]) => {
-    const normalizedKey = fieldMap[key] || key
-    normalized[normalizedKey] = value
-  })
-  
-  // Ensure required fields exist
-  const requiredFields = ['companyName', 'email']
-  const missingFields = requiredFields.filter(field => !normalized[field])
-  
-  if (missingFields.length > 0) {
-    throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
-  }
-  
-  return normalized
-}
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-  
   try {
-    // Normalize incoming data
-    const normalizedData = normalizeData(req.body)
-    const { companyName, email, contactName } = normalizedData
+    // Extract fields using n8n field names with fallbacks to alternative names
+    const companyName = req.body.companyName || req.body.company_name || req.body.company;
+    const contactEmail = req.body.email || req.body.contactEmail || req.body.contact_email;
+    const location = req.body.location || req.body.city_state || req.body.cityState;
+    const phoneNumber = req.body.phone || req.body.phoneNumber || req.body.phone_number;
     
-    // Generate consistent slug
-    const slug = companyName.toLowerCase().replace(/[^a-z0-9]/g, '-')
+    // Validate required fields
+    if (!companyName) {
+      return res.status(400).json({ error: 'Company name is required' });
+    }
+    
+    // Generate slug consistently with n8n logic
+    const companySlug = companyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
     
     // Create OpenAI assistant
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+    
     const assistant = await openai.beta.assistants.create({
       name: `${companyName} Solar Assistant`,
-      instructions: `You are a helpful assistant for ${companyName}. You help potential customers learn about solar options.`,
-      model: 'gpt-4-1106-preview',
-    })
+      instructions: `You are a helpful assistant for ${companyName}, a solar company located in ${location || 'the United States'}. Help potential customers learn about solar options.`,
+      model: "gpt-4-1106-preview",
+    });
     
     // Store mapping in Redis
     const redis = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL,
       token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
+    });
     
-    await redis.set(`company:${slug}`, JSON.stringify({
-      assistantId: assistant.id,
-      companyName,
-      contactName,
-      email,
-      createdAt: new Date().toISOString()
-    }))
+    await redis.set(`company:${companySlug}`, assistant.id);
     
     // Generate demo URL
-    const demoUrl = `https://solarbookers.com/${slug}`
+    const demoUrl = `https://solarbookers.com/${companySlug}`;
     
+    // Return success with demo URL
     return res.status(200).json({
       success: true,
       demoUrl,
       assistantId: assistant.id,
-      slug
-    })
+      companySlug
+    });
   } catch (error) {
-    console.error('Error creating prototype:', error)
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    })
+    console.error('Error creating prototype:', error);
+    return res.status(500).json({ error: error.message });
   }
 }
 ```
 
-Apply similar normalization logic to other API endpoints that interact with n8n.
+2. Update the `/api/company-assistant` endpoint to ensure consistent slug generation:
+```javascript
+// pages/api/company-assistant.js
+export default async function handler(req, res) {
+  const { companySlug } = req.query;
+  
+  if (!companySlug) {
+    return res.status(400).json({ error: 'Company slug is required' });
+  }
+  
+  try {
+    const redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    
+    const assistantId = await redis.get(`company:${companySlug}`);
+    
+    if (!assistantId) {
+      return res.status(404).json({ error: 'Assistant not found for this company' });
+    }
+    
+    return res.status(200).json({ assistantId });
+  } catch (error) {
+    console.error('Error retrieving assistant:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+```
+
+3. Add detailed logging to track field mappings and transformations
 
 # Test Strategy:
-1. Create test cases with exact n8n payload structures
-2. Verify field normalization works for all expected field variations
-3. Test error handling with missing required fields
-4. Validate backward compatibility with existing integrations
-5. Test with the integration test suite to ensure end-to-end functionality
-6. Verify that demo URLs are correctly generated and consistent
+Test API endpoints with exact payloads from n8n workflow. Verify that endpoints correctly handle all field variations. Test with missing fields to ensure proper error handling. Confirm that URL generation is consistent between n8n and API endpoints. Use the test suite page to validate each endpoint independently.
