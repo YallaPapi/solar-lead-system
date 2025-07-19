@@ -41,6 +41,17 @@ export async function POST(request: NextRequest) {
       currentThreadId = thread.id;
       console.log('Created thread:', currentThreadId);
     }
+    
+    // Validate thread ID before proceeding
+    if (!currentThreadId) {
+      console.error('Thread ID is still undefined after creation');
+      return NextResponse.json(
+        { error: 'Failed to create or get thread ID' },
+        { status: 500 }
+      );
+    }
+    
+    console.log('Using thread ID:', currentThreadId);
 
     // Add user message to thread
     console.log('Adding message to thread:', currentThreadId);
@@ -55,6 +66,7 @@ export async function POST(request: NextRequest) {
       assistant_id: assistantId
     });
     console.log('Run created:', run.id);
+    console.log('Run object:', { id: run.id, status: run.status, threadId: currentThreadId });
 
     // Wait for completion - THE FIX IS HERE
     let runStatus = run;
@@ -62,10 +74,13 @@ export async function POST(request: NextRequest) {
     
     while ((runStatus.status === 'queued' || runStatus.status === 'in_progress') && attempts < 30) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log(`Attempt ${attempts + 1}: Status ${runStatus.status}`);
+      console.log(`Attempt ${attempts + 1}: Status ${runStatus.status}, ThreadID: ${currentThreadId}, RunID: ${run.id}`);
       
-      // FIXED: Keep using the original run object, don't call retrieve yet
-      // runStatus = await openai.beta.threads.runs.retrieve(currentThreadId, run.id);
+      // Validate parameters before API call
+      if (!currentThreadId || !run.id) {
+        console.error('Missing parameters for run retrieval:', { currentThreadId, runId: run.id });
+        throw new Error('Missing thread ID or run ID for status check');
+      }
       
       // Only retrieve the latest status
       // @ts-ignore - OpenAI library typing issue
