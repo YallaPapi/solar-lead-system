@@ -85,8 +85,13 @@ export default function CompanyDemoPage() {
         }),
       });
 
-      if (!response.ok) throw new Error('Network error');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Response Error:', { status: response.status, statusText: response.statusText, body: errorText });
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
       const data = await response.json();
+      console.log('API Response Success:', data);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
