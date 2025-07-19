@@ -9,177 +9,83 @@ export async function POST(request: NextRequest) {
   console.log('=== CHAT API START ===');
   
   try {
-    // Check environment variables first
     if (!process.env.OPENAI_API_KEY) {
-      console.error('MISSING OPENAI_API_KEY');
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
     }
 
     const { assistantId, message, threadId } = await request.json();
     console.log('Chat API called with:', { assistantId, message, threadId });
 
     if (!assistantId || !message) {
-      console.error('Missing required fields:', { assistantId: !!assistantId, message: !!message });
-      return NextResponse.json(
-        { error: 'Assistant ID and message are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Assistant ID and message are required' }, { status: 400 });
     }
 
     // Create or use existing thread
     let currentThreadId = threadId;
     if (!currentThreadId) {
-      console.log('Creating new thread...');
-      try {
-        const thread = await openai.beta.threads.create();
-        if (!thread || !thread.id) {
-          console.error('Thread creation failed - no ID returned:', thread);
-          return NextResponse.json(
-            { error: 'Failed to create conversation thread' },
-            { status: 500 }
-          );
-        }
-        currentThreadId = thread.id;
-        console.log('Successfully created thread:', currentThreadId);
-      } catch (createError) {
-        console.error('Failed to create thread:', createError);
-        return NextResponse.json(
-          { error: 'Failed to create conversation thread' },
-          { status: 500 }
-        );
-      }
+      const thread = await openai.beta.threads.create();
+      currentThreadId = thread.id;
+      console.log('Created thread:', currentThreadId);
     }
-    
-    // Final validation of thread ID
-    if (!currentThreadId || typeof currentThreadId !== 'string') {
-      console.error('Thread ID is invalid:', currentThreadId);
-      return NextResponse.json(
-        { error: 'Invalid thread ID' },
-        { status: 500 }
-      );
-    }
-    
-    console.log('Using thread ID:', currentThreadId);
 
     // Add user message to thread
-    console.log('Adding message to thread:', currentThreadId);
-    try {
-      await openai.beta.threads.messages.create(currentThreadId, {
-        role: 'user',
-        content: message
-      });
-      console.log('Message added successfully');
-    } catch (messageError) {
-      console.error('Failed to add message to thread:', messageError);
-      return NextResponse.json(
-        { error: 'Failed to add message to thread', threadId: currentThreadId },
-        { status: 500 }
-      );
-    }
+    await openai.beta.threads.messages.create(currentThreadId, {
+      role: 'user',
+      content: message
+    });
 
-    // Create and run the assistant
-    console.log('Creating run with assistant:', assistantId, 'on thread:', currentThreadId);
-    let run;
-    try {
-      run = await openai.beta.threads.runs.create(currentThreadId, {
-        assistant_id: assistantId
-      });
-      console.log('Run created:', run.id);
-    } catch (runError) {
-      console.error('Failed to create run:', runError);
-      return NextResponse.json(
-        { error: 'Failed to create assistant run', threadId: currentThreadId },
-        { status: 500 }
-      );
-    }
+    // Create run and immediately poll with a simplified approach
+    const run = await openai.beta.threads.runs.create(currentThreadId, {
+      assistant_id: assistantId
+    });
 
-    // Wait for completion with simplified approach
-    let runStatus = run;
+    console.log('Run created:', run.id);
+
+    // Simple polling approach - wait a bit then check messages
     let attempts = 0;
-    const maxAttempts = 30;
-    
-    while ((runStatus.status === 'queued' || runStatus.status === 'in_progress') && attempts < maxAttempts) {
+    while (attempts < 30) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log(`Attempt ${attempts + 1}: Status ${runStatus.status}`);
       
-      try {
-        // Use direct parameters approach to avoid TypeScript issues
-        const retrieveParams = {
-          thread_id: currentThreadId,
-          run_id: run.id
-        };
-        
-        // Make the API call with proper parameters
-        const response = await fetch(`https://api.openai.com/v1/threads/${currentThreadId}/runs/${run.id}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-            'OpenAI-Beta': 'assistants=v1'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        runStatus = await response.json();
-        attempts++;
-      } catch (retrieveError) {
-        console.error('Failed to retrieve run status:', retrieveError);
-        return NextResponse.json(
-          { error: 'Failed to check run status', threadId: currentThreadId },
-          { status: 500 }
-        );
-      }
-    }
-
-    console.log('Final run status:', runStatus.status);
-
-    if (runStatus.status === 'completed') {
+      // Get messages instead of checking run status
       try {
         const messages = await openai.beta.threads.messages.list(currentThreadId);
-        const latestMessage = messages.data.find(msg => msg.role === 'assistant');
         
-        if (latestMessage && latestMessage.content[0] && latestMessage.content[0].type === 'text') {
-          console.log('SUCCESS! Response received');
-          return NextResponse.json({
-            success: true,
-            response: latestMessage.content[0].text.value,
-            threadId: currentThreadId
-          });
-        } else {
-          console.error('No valid assistant response found');
-          return NextResponse.json(
-            { error: 'No valid response from assistant', threadId: currentThreadId },
-            { status: 500 }
-          );
-        }
-      } catch (messageRetrieveError) {
-        console.error('Failed to retrieve messages:', messageRetrieveError);
-        return NextResponse.json(
-          { error: 'Failed to retrieve assistant response', threadId: currentThreadId },
-          { status: 500 }
+        // Look for assistant response that's newer than our run
+        const assistantMessages = messages.data.filter(msg => 
+          msg.role === 'assistant' && 
+          new Date(msg.created_at * 1000) > new Date(run.created_at * 1000)
         );
+
+        if (assistantMessages.length > 0) {
+          const latestMessage = assistantMessages[0];
+          if (latestMessage.content[0] && latestMessage.content[0].type === 'text') {
+            console.log('SUCCESS! Got response');
+            return NextResponse.json({
+              success: true,
+              response: latestMessage.content[0].text.value,
+              threadId: currentThreadId
+            });
+          }
+        }
+        
+        attempts++;
+      } catch (error) {
+        console.error('Error checking messages:', error);
+        attempts++;
       }
     }
 
-    // Handle non-completed status
-    console.error('Run failed with status:', runStatus.status);
-    return NextResponse.json(
-      { error: `Assistant run failed: ${runStatus.status}`, threadId: currentThreadId },
-      { status: 500 }
-    );
+    // If we get here, timeout
+    return NextResponse.json({
+      error: 'Response timeout - assistant is taking too long',
+      threadId: currentThreadId
+    }, { status: 500 });
 
   } catch (error) {
     console.error('Chat error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: 'Chat failed', details: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      error: 'Chat failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
