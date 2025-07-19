@@ -1,0 +1,338 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 9,
+        "title": "Create Comprehensive Debug Endpoint",
+        "description": "Develop a debug endpoint that tests Redis connections, OpenAI API integration, and environment configuration to diagnose system issues.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "Create a new API route at `/api/debug` that performs the following checks:\n1. Redis connection test - verify connection to Upstash Redis, ability to set/get values, and company data lookup\n2. OpenAI API validation - test connection to OpenAI, model access, and Assistant API functionality\n3. Environment variable check - validate all required environment variables are present\n4. URL generation test - verify n8n-compatible slug generation algorithm produces consistent results\n5. Company mappings - list all stored company->assistant mappings in Redis\n\nImplementation should support both GET (diagnostics) and POST (interactive testing) operations with query parameters for targeted testing (redis, openai, environment, companies, urlGeneration).\n\nThe endpoint should include:\n```javascript\n// pages/api/debug.js\nimport { Redis } from '@upstash/redis'\nimport OpenAI from 'openai'\n\nexport default async function handler(req, res) {\n  // Determine which tests to run based on query parameters\n  const testsToRun = req.query.test ? [req.query.test] : ['redis', 'openai', 'environment', 'urlGeneration', 'companies'];\n  \n  const results = {\n    redis: { status: 'pending', details: null },\n    openai: { status: 'pending', details: null },\n    environment: { status: 'pending', details: null },\n    urlGeneration: { status: 'pending', details: null },\n    companies: { status: 'pending', details: null }\n  }\n  \n  // Handle POST requests for advanced testing\n  if (req.method === 'POST') {\n    // Add POST-specific testing functionality here\n    // - Chat testing\n    // - Redis data cleanup\n    // Return appropriate response\n  }\n  \n  // Test Redis connection\n  if (testsToRun.includes('redis')) {\n    try {\n      const redis = new Redis({\n        url: process.env.UPSTASH_REDIS_REST_URL,\n        token: process.env.UPSTASH_REDIS_REST_TOKEN,\n      })\n      const testKey = 'debug-test-' + Date.now()\n      await redis.set(testKey, 'test-value')\n      const value = await redis.get(testKey)\n      await redis.del(testKey)\n      results.redis = { status: 'success', details: 'Connection successful' }\n    } catch (error) {\n      results.redis = { status: 'error', details: error.message }\n    }\n  }\n  \n  // Test OpenAI connection\n  if (testsToRun.includes('openai')) {\n    try {\n      const openai = new OpenAI({\n        apiKey: process.env.OPENAI_API_KEY,\n      })\n      const assistants = await openai.beta.assistants.list({ limit: 1 })\n      results.openai = { status: 'success', details: `Found ${assistants.data.length} assistants` }\n    } catch (error) {\n      results.openai = { status: 'error', details: error.message }\n    }\n  }\n  \n  // Check environment variables\n  if (testsToRun.includes('environment')) {\n    const requiredVars = [\n      'OPENAI_API_KEY',\n      'UPSTASH_REDIS_REST_URL',\n      'UPSTASH_REDIS_REST_TOKEN',\n      // Add other required variables\n    ]\n    const missingVars = requiredVars.filter(v => !process.env[v])\n    results.environment = missingVars.length === 0 \n      ? { status: 'success', details: 'All required variables present' }\n      : { status: 'error', details: `Missing variables: ${missingVars.join(', ')}` }\n  }\n  \n  // Test URL generation\n  if (testsToRun.includes('urlGeneration')) {\n    try {\n      const testCompanies = ['Test Company Name', 'Solar & Wind Co.', 'Green Energy, Inc.']\n      const slugResults = testCompanies.map(company => {\n        const slug = company.toLowerCase().replace(/[^a-z0-9]/g, '-')\n        return { company, slug, url: `https://solarbookers.com/${slug}` }\n      })\n      results.urlGeneration = { status: 'success', details: slugResults }\n    } catch (error) {\n      results.urlGeneration = { status: 'error', details: error.message }\n    }\n  }\n  \n  // List company mappings\n  if (testsToRun.includes('companies')) {\n    try {\n      const redis = new Redis({\n        url: process.env.UPSTASH_REDIS_REST_URL,\n        token: process.env.UPSTASH_REDIS_REST_TOKEN,\n      })\n      const keys = await redis.keys('company:*')\n      const mappings = []\n      for (const key of keys) {\n        const value = await redis.get(key)\n        mappings.push({ key, value })\n      }\n      results.companies = { status: 'success', details: mappings }\n    } catch (error) {\n      results.companies = { status: 'error', details: error.message }\n    }\n  }\n  \n  return res.status(200).json(results)\n}\n```",
+        "testStrategy": "Test the debug endpoint by making both GET and POST requests with various query parameters to verify all checks run correctly. Test targeted functionality using query parameters (e.g., ?test=redis). Verify the company mappings feature correctly lists all stored Redis data. Test the advanced POST endpoints for chat testing and Redis data cleanup. Simulate failure conditions by temporarily modifying environment variables or disconnecting services to ensure proper error reporting. Verify the endpoint returns detailed diagnostic information for each integration point, especially focusing on n8n workflow integration issues.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Redis connection testing",
+            "description": "Implemented Redis connection testing with set/get operations and company data lookup functionality.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement OpenAI API validation",
+            "description": "Implemented OpenAI API validation with model access and assistant retrieval functionality testing.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement environment variable checking",
+            "description": "Implemented validation for all required environment variables.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement URL generation testing",
+            "description": "Implemented n8n-compatible slug generation algorithm testing with multiple examples.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement company mappings listing",
+            "description": "Implemented functionality to list all stored company->assistant mappings in Redis.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement POST endpoints for advanced testing",
+            "description": "Implemented POST endpoints for chat testing and Redis data cleanup.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add query parameter support for targeted testing",
+            "description": "Added support for query parameters to run specific tests (redis, openai, environment, companies, urlGeneration).",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Document endpoint usage and test scenarios",
+            "description": "Create documentation for the debug endpoint explaining all available tests, query parameters, and POST operations.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Build Integration Test Suite Page",
+        "description": "Create a test suite page that allows manual validation of each integration point independently, including Redis operations, OpenAI assistant creation, URL generation, and n8n workflow integration.",
+        "status": "done",
+        "dependencies": [
+          9
+        ],
+        "priority": "high",
+        "details": "Develop a protected admin page at `/admin/test-suite` that provides UI controls to test each component of the system:\n\n1. Create a Next.js page with TypeScript and Tailwind CSS styling:\n   - Organized test grid layout with color-coded test categories (blue for debug, green for integration, orange for n8n)\n   - Test data configuration panel for customizing company/contact information\n   - Real-time loading states with spinners and result display\n   - Color-coded success/failure indicators\n   - Detailed JSON result display with syntax highlighting\n\n2. Implement Debug Tests (6 tests total):\n   - Complete System Debug (all checks)\n   - Redis Connection (set/get operations, company data lookup)\n   - OpenAI API (model access, assistant functionality)\n   - Environment Variables (validation of required vars)\n   - URL Generation (n8n-compatible slug algorithm)\n   - Company Mappings (Redis key listings)\n\n3. Implement Integration Tests (3 tests total):\n   - Create Prototype (full demo site creation)\n   - Company Assistant Lookup (Redis mapping retrieval)\n   - Chat Functionality (end-to-end chat flow)\n\n4. Implement n8n Workflow Tests:\n   - n8n webhook endpoint tests (verify proper data reception)\n   - Error handling scenarios (test with invalid data, missing fields)\n   - Data validation tests (verify data integrity throughout workflow)\n   - Test data cleanup functionality (remove test artifacts)\n   - n8n workflow health checks (verify workflow status)\n   - Bulk/load testing capabilities (simulate multiple simultaneous requests)\n   - Test sequencing and automation (run tests in specific order)\n\n5. Add technical features:\n   - Query parameter support for targeted debug testing\n   - POST endpoint testing for advanced functionality\n   - Error handling with success/failure indicators\n   - TypeScript with proper interfaces\n\n6. Add basic authentication to protect the test suite page",
+        "testStrategy": "Manually test each component through the UI, verifying that all test endpoints return expected results. Test with valid and invalid inputs to ensure proper error handling. Verify that the test suite accurately reflects the state of each integration point. Use the test suite to diagnose the n8n workflow integration issues identified in the PRD. Test n8n webhook endpoints with various payloads to verify proper handling. Validate error scenarios by sending malformed data. Verify test data cleanup functionality properly removes test artifacts. Run bulk tests to ensure system stability under load.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create UI layout with Tailwind CSS",
+            "description": "Implement the test suite page with Tailwind CSS styling, organized grid layout, and color-coded test categories",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement test data configuration panel",
+            "description": "Create a panel for customizing company and contact information used in tests",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Debug Tests",
+            "description": "Create 6 debug tests including system debug, Redis connection, OpenAI API, environment variables, URL generation, and company mappings",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Integration Tests",
+            "description": "Create 3 integration tests for prototype creation, company assistant lookup, and chat functionality",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Add loading states and result display",
+            "description": "Implement real-time loading indicators with spinners and JSON result display with syntax highlighting",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Add query parameter support",
+            "description": "Implement support for targeted debug testing via query parameters",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add TypeScript interfaces",
+            "description": "Convert JavaScript to TypeScript with proper interfaces for type safety",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Implement authentication",
+            "description": "Add basic authentication to protect the test suite page",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Create n8n webhook endpoint tests",
+            "description": "Implement tests to verify n8n webhook endpoints properly receive and process data",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create tests that send various payloads to n8n webhook endpoints and verify proper data reception and processing. Include tests for different data formats and payload sizes.",
+            "testStrategy": "Test with valid and invalid webhook payloads. Verify response codes and processing results."
+          },
+          {
+            "id": 10,
+            "title": "Implement error handling scenario tests",
+            "description": "Create tests for error handling scenarios with invalid data and missing fields",
+            "status": "done",
+            "dependencies": [],
+            "details": "Develop tests that intentionally send malformed data, missing required fields, and other error conditions to verify proper error handling in n8n workflows.",
+            "testStrategy": "Test with various error conditions and verify appropriate error messages and handling."
+          },
+          {
+            "id": 11,
+            "title": "Add data validation tests",
+            "description": "Create tests to verify data integrity throughout n8n workflows",
+            "status": "done",
+            "dependencies": [],
+            "details": "Implement tests that track data as it moves through different stages of n8n workflows to ensure data integrity is maintained.",
+            "testStrategy": "Test with complex data structures and verify data remains consistent throughout workflow execution."
+          },
+          {
+            "id": 12,
+            "title": "Implement test data cleanup functionality",
+            "description": "Create functionality to clean up test data after test execution",
+            "status": "done",
+            "dependencies": [],
+            "details": "Develop cleanup routines that remove test artifacts from Redis, databases, and other storage after tests complete to prevent test data accumulation.",
+            "testStrategy": "Verify that test data is properly removed after test execution and doesn't affect subsequent tests."
+          },
+          {
+            "id": 13,
+            "title": "Add n8n workflow health checks",
+            "description": "Implement tests to verify n8n workflow status and health",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create tests that check the operational status of n8n workflows, including activation status, error rates, and execution history.",
+            "testStrategy": "Verify that health checks accurately report workflow status and identify issues."
+          },
+          {
+            "id": 14,
+            "title": "Implement bulk/load testing capabilities",
+            "description": "Create functionality to test system performance under load",
+            "status": "done",
+            "dependencies": [],
+            "details": "Develop tests that can simulate multiple simultaneous requests to n8n workflows to verify system stability under load conditions.",
+            "testStrategy": "Test with various load levels and verify system performance and stability."
+          },
+          {
+            "id": 15,
+            "title": "Add test sequencing and automation",
+            "description": "Implement functionality to run tests in specific sequences",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create a test orchestration system that can run tests in specific orders to test complex workflows that span multiple systems.",
+            "testStrategy": "Verify that test sequences execute correctly and maintain proper state between test steps."
+          },
+          {
+            "id": 16,
+            "title": "Update UI with n8n test category",
+            "description": "Add a new orange-colored category for n8n-specific tests in the UI",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend the existing UI layout to include a new category specifically for n8n workflow tests, using orange color coding to distinguish from other test types.",
+            "testStrategy": "Verify that the new category displays correctly and maintains the existing UI design patterns."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Analyze N8N Workflow and Document Field Mappings",
+        "description": "Analyze the n8n workflow JSON to understand exact data flow and field mappings, documenting current vs. expected behavior at each integration point.",
+        "details": "1. Extract and analyze the n8n workflow JSON to identify all field names and data structures:\n   - Extract webhook payload structure\n   - Document field transformations within n8n\n   - Identify field names used when calling API endpoints\n\n2. Create a comprehensive mapping document that shows:\n   - Original field names from webhook source\n   - Transformed field names within n8n workflow\n   - Expected field names by API endpoints\n   - Any discrepancies or mismatches\n\n3. Document the exact URL generation logic used in n8n:\n```javascript\n// Example of current n8n URL generation logic (to be extracted from workflow):\nfunction generateSlug(companyName) {\n  return companyName\n    .toLowerCase()\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-|-$/g, '');\n}\n\nfunction generateDemoUrl(companyName) {\n  const slug = generateSlug(companyName);\n  return `https://solarbookers.com/${slug}`;\n}\n```\n\n4. Create a detailed flow diagram showing:\n   - Webhook trigger and data structure\n   - AI qualification step and data transformation\n   - Demo creation API call with field mappings\n   - Email sending via Instantly.ai with field mappings\n   - Expected user journey through demo site\n\n5. Document all identified issues and discrepancies:\n   - Field name mismatches between n8n and API\n   - URL generation inconsistencies\n   - Data format differences\n   - Missing required fields\n\nOutput should be a comprehensive markdown document with code examples, diagrams, and tables showing exact field mappings.",
+        "testStrategy": "Review the documentation with the development team to ensure accuracy. Validate field mappings against actual API endpoint code. Test URL generation logic from both n8n and API to confirm they produce identical results. Use the documentation to guide implementation of fixes in subsequent tasks.",
+        "priority": "high",
+        "dependencies": [
+          9
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Fix API Endpoints to Handle N8N Field Mappings",
+        "description": "Update API endpoints to correctly handle the exact field names and data structures sent from the n8n workflow payload.",
+        "details": "Based on the field mapping analysis, update the following API endpoints to properly handle n8n payload fields:\n\n1. Update the `/api/create-prototype` endpoint to accept n8n field names:\n```javascript\n// pages/api/create-prototype.js\nexport default async function handler(req, res) {\n  try {\n    // Extract fields using n8n field names with fallbacks to alternative names\n    const companyName = req.body.companyName || req.body.company_name || req.body.company;\n    const contactEmail = req.body.email || req.body.contactEmail || req.body.contact_email;\n    const location = req.body.location || req.body.city_state || req.body.cityState;\n    const phoneNumber = req.body.phone || req.body.phoneNumber || req.body.phone_number;\n    \n    // Validate required fields\n    if (!companyName) {\n      return res.status(400).json({ error: 'Company name is required' });\n    }\n    \n    // Generate slug consistently with n8n logic\n    const companySlug = companyName\n      .toLowerCase()\n      .replace(/[^a-z0-9]+/g, '-')\n      .replace(/^-|-$/g, '');\n    \n    // Create OpenAI assistant\n    const openai = new OpenAI({\n      apiKey: process.env.OPENAI_API_KEY,\n    });\n    \n    const assistant = await openai.beta.assistants.create({\n      name: `${companyName} Solar Assistant`,\n      instructions: `You are a helpful assistant for ${companyName}, a solar company located in ${location || 'the United States'}. Help potential customers learn about solar options.`,\n      model: \"gpt-4-1106-preview\",\n    });\n    \n    // Store mapping in Redis\n    const redis = new Redis({\n      url: process.env.UPSTASH_REDIS_REST_URL,\n      token: process.env.UPSTASH_REDIS_REST_TOKEN,\n    });\n    \n    await redis.set(`company:${companySlug}`, assistant.id);\n    \n    // Generate demo URL\n    const demoUrl = `https://solarbookers.com/${companySlug}`;\n    \n    // Return success with demo URL\n    return res.status(200).json({\n      success: true,\n      demoUrl,\n      assistantId: assistant.id,\n      companySlug\n    });\n  } catch (error) {\n    console.error('Error creating prototype:', error);\n    return res.status(500).json({ error: error.message });\n  }\n}\n```\n\n2. Update the `/api/company-assistant` endpoint to ensure consistent slug generation:\n```javascript\n// pages/api/company-assistant.js\nexport default async function handler(req, res) {\n  const { companySlug } = req.query;\n  \n  if (!companySlug) {\n    return res.status(400).json({ error: 'Company slug is required' });\n  }\n  \n  try {\n    const redis = new Redis({\n      url: process.env.UPSTASH_REDIS_REST_URL,\n      token: process.env.UPSTASH_REDIS_REST_TOKEN,\n    });\n    \n    const assistantId = await redis.get(`company:${companySlug}`);\n    \n    if (!assistantId) {\n      return res.status(404).json({ error: 'Assistant not found for this company' });\n    }\n    \n    return res.status(200).json({ assistantId });\n  } catch (error) {\n    console.error('Error retrieving assistant:', error);\n    return res.status(500).json({ error: error.message });\n  }\n}\n```\n\n3. Add detailed logging to track field mappings and transformations",
+        "testStrategy": "Test API endpoints with exact payloads from n8n workflow. Verify that endpoints correctly handle all field variations. Test with missing fields to ensure proper error handling. Confirm that URL generation is consistent between n8n and API endpoints. Use the test suite page to validate each endpoint independently.",
+        "priority": "high",
+        "dependencies": [
+          11
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Align URL Generation Algorithm",
+        "description": "Ensure URL generation is consistent between n8n workflow and API endpoints by implementing identical slug generation algorithms.",
+        "details": "1. Create a shared utility function for slug generation that matches n8n's algorithm exactly:\n\n```javascript\n// utils/slugUtils.js\nexport function generateSlug(companyName) {\n  if (!companyName) return '';\n  \n  return companyName\n    .toLowerCase()\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-|-$/g, '');\n}\n\nexport function generateDemoUrl(companyName) {\n  const slug = generateSlug(companyName);\n  return `https://solarbookers.com/${slug}`;\n}\n```\n\n2. Update all API endpoints to use this shared utility:\n\n```javascript\n// pages/api/create-prototype.js\nimport { generateSlug, generateDemoUrl } from '../../utils/slugUtils';\n\nexport default async function handler(req, res) {\n  try {\n    const companyName = req.body.companyName || req.body.company_name || req.body.company;\n    // ... other field extractions\n    \n    const companySlug = generateSlug(companyName);\n    const demoUrl = generateDemoUrl(companyName);\n    \n    // ... rest of function\n  } catch (error) {\n    // ... error handling\n  }\n}\n```\n\n3. Update the demo page to use the same slug parsing:\n\n```javascript\n// pages/[companySlug].js\nimport { useRouter } from 'next/router';\nimport { useEffect, useState } from 'react';\n\nexport default function CompanyDemo() {\n  const router = useRouter();\n  const { companySlug } = router.query;\n  const [assistantId, setAssistantId] = useState(null);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState(null);\n  \n  useEffect(() => {\n    if (!companySlug) return;\n    \n    async function fetchAssistant() {\n      try {\n        const response = await fetch(`/api/company-assistant?companySlug=${companySlug}`);\n        const data = await response.json();\n        \n        if (!response.ok) {\n          throw new Error(data.error || 'Failed to load assistant');\n        }\n        \n        setAssistantId(data.assistantId);\n      } catch (error) {\n        console.error('Error loading assistant:', error);\n        setError(error.message);\n      } finally {\n        setLoading(false);\n      }\n    }\n    \n    fetchAssistant();\n  }, [companySlug]);\n  \n  // ... rest of component\n}\n```\n\n4. Create a test endpoint to validate URL generation consistency:\n\n```javascript\n// pages/api/test/url-generation.js\nimport { generateSlug, generateDemoUrl } from '../../../utils/slugUtils';\n\nexport default function handler(req, res) {\n  const { companyName } = req.query;\n  \n  if (!companyName) {\n    return res.status(400).json({ error: 'Company name is required' });\n  }\n  \n  const slug = generateSlug(companyName);\n  const demoUrl = generateDemoUrl(companyName);\n  \n  return res.status(200).json({\n    companyName,\n    slug,\n    demoUrl\n  });\n}\n```",
+        "testStrategy": "Test URL generation with a variety of company names, including those with special characters, spaces, and capitalization. Compare results with n8n-generated URLs to ensure they match exactly. Test edge cases like empty strings, very long names, and names with only special characters. Verify that demo URLs generated by both systems resolve to the same page.",
+        "priority": "high",
+        "dependencies": [
+          11,
+          12
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Fix Redis Connection and Assistant Mapping",
+        "description": "Resolve Redis connection issues and improve key storage/retrieval for company-assistant mappings to ensure demo sites load correctly.",
+        "details": "1. Implement a robust Redis connection with error handling and retry logic:\n\n```javascript\n// utils/redis.js\nimport { Redis } from '@upstash/redis';\n\nlet redisClient = null;\n\nexport async function getRedisClient() {\n  if (redisClient) return redisClient;\n  \n  try {\n    redisClient = new Redis({\n      url: process.env.UPSTASH_REDIS_REST_URL,\n      token: process.env.UPSTASH_REDIS_REST_TOKEN,\n    });\n    \n    // Test connection\n    await redisClient.ping();\n    return redisClient;\n  } catch (error) {\n    console.error('Redis connection error:', error);\n    redisClient = null;\n    throw new Error(`Failed to connect to Redis: ${error.message}`);\n  }\n}\n\nexport async function getAssistantId(companySlug) {\n  try {\n    const redis = await getRedisClient();\n    const key = `company:${companySlug}`;\n    const assistantId = await redis.get(key);\n    \n    if (!assistantId) {\n      console.warn(`No assistant found for company slug: ${companySlug}`);\n      return null;\n    }\n    \n    return assistantId;\n  } catch (error) {\n    console.error(`Error retrieving assistant for ${companySlug}:`, error);\n    throw error;\n  }\n}\n\nexport async function storeAssistantMapping(companySlug, assistantId) {\n  try {\n    const redis = await getRedisClient();\n    const key = `company:${companySlug}`;\n    \n    // Store with expiration (30 days)\n    await redis.set(key, assistantId, { ex: 60 * 60 * 24 * 30 });\n    \n    // Store reverse lookup for debugging\n    await redis.set(`assistant:${assistantId}`, companySlug, { ex: 60 * 60 * 24 * 30 });\n    \n    return true;\n  } catch (error) {\n    console.error(`Error storing assistant mapping for ${companySlug}:`, error);\n    throw error;\n  }\n}\n```\n\n2. Update the company-assistant API endpoint to use the improved Redis utilities:\n\n```javascript\n// pages/api/company-assistant.js\nimport { getAssistantId } from '../../utils/redis';\n\nexport default async function handler(req, res) {\n  const { companySlug } = req.query;\n  \n  if (!companySlug) {\n    return res.status(400).json({ error: 'Company slug is required' });\n  }\n  \n  try {\n    const assistantId = await getAssistantId(companySlug);\n    \n    if (!assistantId) {\n      return res.status(404).json({ \n        error: 'Assistant not found for this company',\n        companySlug \n      });\n    }\n    \n    return res.status(200).json({ assistantId, companySlug });\n  } catch (error) {\n    console.error('Error retrieving assistant:', error);\n    return res.status(500).json({ \n      error: error.message,\n      companySlug \n    });\n  }\n}\n```\n\n3. Update the create-prototype endpoint to use the improved Redis utilities:\n\n```javascript\n// pages/api/create-prototype.js\nimport { storeAssistantMapping } from '../../utils/redis';\nimport { generateSlug, generateDemoUrl } from '../../utils/slugUtils';\nimport OpenAI from 'openai';\n\nexport default async function handler(req, res) {\n  try {\n    // ... extract fields from request\n    \n    const companySlug = generateSlug(companyName);\n    \n    // Create OpenAI assistant\n    const openai = new OpenAI({\n      apiKey: process.env.OPENAI_API_KEY,\n    });\n    \n    const assistant = await openai.beta.assistants.create({\n      name: `${companyName} Solar Assistant`,\n      instructions: `You are a helpful assistant for ${companyName}, a solar company located in ${location || 'the United States'}. Help potential customers learn about solar options.`,\n      model: \"gpt-4-1106-preview\",\n    });\n    \n    // Store mapping in Redis\n    await storeAssistantMapping(companySlug, assistant.id);\n    \n    // Generate demo URL\n    const demoUrl = generateDemoUrl(companyName);\n    \n    // Return success with demo URL\n    return res.status(200).json({\n      success: true,\n      demoUrl,\n      assistantId: assistant.id,\n      companySlug\n    });\n  } catch (error) {\n    console.error('Error creating prototype:', error);\n    return res.status(500).json({ error: error.message });\n  }\n}\n```\n\n4. Add a Redis health check endpoint for monitoring:\n\n```javascript\n// pages/api/health/redis.js\nimport { getRedisClient } from '../../../utils/redis';\n\nexport default async function handler(req, res) {\n  try {\n    const redis = await getRedisClient();\n    const pingResult = await redis.ping();\n    \n    return res.status(200).json({\n      status: 'healthy',\n      ping: pingResult\n    });\n  } catch (error) {\n    return res.status(500).json({\n      status: 'unhealthy',\n      error: error.message\n    });\n  }\n}\n```",
+        "testStrategy": "Test Redis connection with both valid and invalid credentials to verify error handling. Test storing and retrieving assistant mappings with various company slugs. Verify that Redis keys are properly formatted and have appropriate expiration times. Test the health check endpoint to ensure it correctly reports Redis status. Simulate Redis connection failures to verify retry logic works correctly.",
+        "priority": "high",
+        "dependencies": [
+          12,
+          13
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Fix OpenAI Chat Integration",
+        "description": "Resolve OpenAI threading and timeout issues in the chat API, improving error handling and retry logic for API failures.",
+        "details": "1. Create a robust OpenAI client utility with error handling:\n\n```javascript\n// utils/openai.js\nimport OpenAI from 'openai';\n\nlet openaiClient = null;\n\nexport function getOpenAIClient() {\n  if (openaiClient) return openaiClient;\n  \n  openaiClient = new OpenAI({\n    apiKey: process.env.OPENAI_API_KEY,\n    timeout: 30000, // 30 second timeout\n    maxRetries: 3,\n  });\n  \n  return openaiClient;\n}\n\nexport async function createThread() {\n  const openai = getOpenAIClient();\n  \n  try {\n    const thread = await openai.beta.threads.create();\n    return thread.id;\n  } catch (error) {\n    console.error('Error creating thread:', error);\n    throw new Error(`Failed to create thread: ${error.message}`);\n  }\n}\n\nexport async function addMessageToThread(threadId, message) {\n  const openai = getOpenAIClient();\n  \n  try {\n    const response = await openai.beta.threads.messages.create(\n      threadId,\n      { role: 'user', content: message }\n    );\n    return response;\n  } catch (error) {\n    console.error(`Error adding message to thread ${threadId}:`, error);\n    throw new Error(`Failed to add message: ${error.message}`);\n  }\n}\n\nexport async function runAssistant(threadId, assistantId) {\n  const openai = getOpenAIClient();\n  \n  try {\n    const run = await openai.beta.threads.runs.create(\n      threadId,\n      { assistant_id: assistantId }\n    );\n    return run.id;\n  } catch (error) {\n    console.error(`Error running assistant ${assistantId} on thread ${threadId}:`, error);\n    throw new Error(`Failed to run assistant: ${error.message}`);\n  }\n}\n\nexport async function waitForRunCompletion(threadId, runId, maxAttempts = 10) {\n  const openai = getOpenAIClient();\n  let attempts = 0;\n  \n  while (attempts < maxAttempts) {\n    try {\n      const run = await openai.beta.threads.runs.retrieve(threadId, runId);\n      \n      if (run.status === 'completed') {\n        return run;\n      }\n      \n      if (run.status === 'failed' || run.status === 'cancelled' || run.status === 'expired') {\n        throw new Error(`Run failed with status: ${run.status}`);\n      }\n      \n      // Wait before checking again\n      await new Promise(resolve => setTimeout(resolve, 1000));\n      attempts++;\n    } catch (error) {\n      console.error(`Error checking run status for ${runId}:`, error);\n      throw new Error(`Failed to check run status: ${error.message}`);\n    }\n  }\n  \n  throw new Error('Run timed out');\n}\n\nexport async function getThreadMessages(threadId) {\n  const openai = getOpenAIClient();\n  \n  try {\n    const messages = await openai.beta.threads.messages.list(threadId);\n    return messages.data;\n  } catch (error) {\n    console.error(`Error retrieving messages for thread ${threadId}:`, error);\n    throw new Error(`Failed to retrieve messages: ${error.message}`);\n  }\n}\n```\n\n2. Update the chat API endpoint to use the improved OpenAI utilities:\n\n```javascript\n// pages/api/chat.js\nimport { getAssistantId } from '../../utils/redis';\nimport { \n  createThread, \n  addMessageToThread, \n  runAssistant, \n  waitForRunCompletion, \n  getThreadMessages \n} from '../../utils/openai';\n\nexport default async function handler(req, res) {\n  if (req.method !== 'POST') {\n    return res.status(405).json({ error: 'Method not allowed' });\n  }\n  \n  const { companySlug, message, threadId: existingThreadId } = req.body;\n  \n  if (!companySlug || !message) {\n    return res.status(400).json({ error: 'Company slug and message are required' });\n  }\n  \n  try {\n    // Get assistant ID from Redis\n    const assistantId = await getAssistantId(companySlug);\n    \n    if (!assistantId) {\n      return res.status(404).json({ error: 'No assistant found for this company' });\n    }\n    \n    // Create or use existing thread\n    const threadId = existingThreadId || await createThread();\n    \n    // Add message to thread\n    await addMessageToThread(threadId, message);\n    \n    // Run the assistant\n    const runId = await runAssistant(threadId, assistantId);\n    \n    // Wait for completion\n    await waitForRunCompletion(threadId, runId);\n    \n    // Get messages\n    const messages = await getThreadMessages(threadId);\n    \n    // Find assistant's response (most recent assistant message)\n    const assistantMessages = messages.filter(msg => msg.role === 'assistant');\n    const latestResponse = assistantMessages[0]?.content[0]?.text?.value || 'No response from assistant';\n    \n    return res.status(200).json({\n      response: latestResponse,\n      threadId,\n      assistantId\n    });\n  } catch (error) {\n    console.error('Error in chat API:', error);\n    return res.status(500).json({ \n      error: error.message,\n      threadId: existingThreadId\n    });\n  }\n}\n```\n\n3. Add a streaming version of the chat API for better user experience:\n\n```javascript\n// pages/api/chat-stream.js\nimport { getAssistantId } from '../../utils/redis';\nimport { \n  createThread, \n  addMessageToThread, \n  runAssistant,\n  getOpenAIClient\n} from '../../utils/openai';\n\nexport default async function handler(req, res) {\n  if (req.method !== 'POST') {\n    return res.status(405).json({ error: 'Method not allowed' });\n  }\n  \n  const { companySlug, message, threadId: existingThreadId } = req.body;\n  \n  if (!companySlug || !message) {\n    return res.status(400).json({ error: 'Company slug and message are required' });\n  }\n  \n  // Set up SSE\n  res.writeHead(200, {\n    'Content-Type': 'text/event-stream',\n    'Cache-Control': 'no-cache',\n    'Connection': 'keep-alive'\n  });\n  \n  try {\n    // Get assistant ID from Redis\n    const assistantId = await getAssistantId(companySlug);\n    \n    if (!assistantId) {\n      res.write(`data: ${JSON.stringify({ error: 'No assistant found for this company' })}\\n\\n`);\n      return res.end();\n    }\n    \n    // Create or use existing thread\n    const threadId = existingThreadId || await createThread();\n    res.write(`data: ${JSON.stringify({ threadId })}\\n\\n`);\n    \n    // Add message to thread\n    await addMessageToThread(threadId, message);\n    \n    // Run the assistant\n    const openai = getOpenAIClient();\n    const run = await openai.beta.threads.runs.create(\n      threadId,\n      { assistant_id: assistantId }\n    );\n    \n    // Stream the response\n    let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);\n    \n    while (runStatus.status !== 'completed' && \n           runStatus.status !== 'failed' && \n           runStatus.status !== 'cancelled' && \n           runStatus.status !== 'expired') {\n      \n      res.write(`data: ${JSON.stringify({ status: runStatus.status })}\\n\\n`);\n      \n      // Wait before checking again\n      await new Promise(resolve => setTimeout(resolve, 1000));\n      runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);\n    }\n    \n    if (runStatus.status === 'completed') {\n      const messages = await openai.beta.threads.messages.list(threadId);\n      const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');\n      const latestResponse = assistantMessages[0]?.content[0]?.text?.value || 'No response from assistant';\n      \n      res.write(`data: ${JSON.stringify({ \n        status: 'completed', \n        response: latestResponse,\n        threadId\n      })}\\n\\n`);\n    } else {\n      res.write(`data: ${JSON.stringify({ \n        status: runStatus.status, \n        error: 'Assistant run failed',\n        threadId\n      })}\\n\\n`);\n    }\n    \n    res.end();\n  } catch (error) {\n    console.error('Error in chat stream API:', error);\n    res.write(`data: ${JSON.stringify({ \n      error: error.message,\n      threadId: existingThreadId\n    })}\\n\\n`);\n    res.end();\n  }\n}\n```",
+        "testStrategy": "Test the chat API with various messages and company slugs. Verify that threads are created and maintained correctly. Test error handling by simulating OpenAI API failures. Measure response times to ensure they're within acceptable limits. Test the streaming API to verify it provides real-time updates. Verify that chat history is maintained correctly across multiple messages in a thread.",
+        "priority": "high",
+        "dependencies": [
+          14
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Implement End-to-End Testing and Validation",
+        "description": "Create comprehensive end-to-end tests to validate the complete workflow from n8n webhook to working chat interface, ensuring all components work together correctly.",
+        "details": "1. Create an end-to-end test script that simulates the entire workflow:\n\n```javascript\n// scripts/e2e-test.js\nimport fetch from 'node-fetch';\nimport { generateSlug } from '../utils/slugUtils';\n\nasync function runE2ETest() {\n  console.log('Starting end-to-end test...');\n  \n  // Test data matching n8n payload structure\n  const testData = {\n    companyName: 'Test Solar Company ' + Date.now(),\n    email: 'test@example.com',\n    location: 'Austin, TX',\n    phone: '555-123-4567'\n  };\n  \n  console.log(`Using test company: ${testData.companyName}`);\n  \n  try {\n    // Step 1: Create prototype\n    console.log('Step 1: Creating prototype...');\n    const createResponse = await fetch('http://localhost:3000/api/create-prototype', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(testData)\n    });\n    \n    const createData = await createResponse.json();\n    \n    if (!createResponse.ok) {\n      throw new Error(`Failed to create prototype: ${createData.error || 'Unknown error'}`);\n    }\n    \n    console.log(`Prototype created successfully: ${createData.demoUrl}`);\n    const { demoUrl, assistantId, companySlug } = createData;\n    \n    // Step 2: Verify company-assistant mapping\n    console.log('Step 2: Verifying company-assistant mapping...');\n    const mappingResponse = await fetch(`http://localhost:3000/api/company-assistant?companySlug=${companySlug}`);\n    const mappingData = await mappingResponse.json();\n    \n    if (!mappingResponse.ok) {\n      throw new Error(`Failed to verify mapping: ${mappingData.error || 'Unknown error'}`);\n    }\n    \n    if (mappingData.assistantId !== assistantId) {\n      throw new Error(`Assistant ID mismatch: ${mappingData.assistantId} vs ${assistantId}`);\n    }\n    \n    console.log('Company-assistant mapping verified successfully');\n    \n    // Step 3: Test chat functionality\n    console.log('Step 3: Testing chat functionality...');\n    const chatResponse = await fetch('http://localhost:3000/api/chat', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        companySlug,\n        message: 'Hello, I\\'m interested in solar panels for my home.'\n      })\n    });\n    \n    const chatData = await chatResponse.json();\n    \n    if (!chatResponse.ok) {\n      throw new Error(`Failed to test chat: ${chatData.error || 'Unknown error'}`);\n    }\n    \n    console.log('Chat response received successfully');\n    console.log(`Response: ${chatData.response.substring(0, 100)}...`);\n    \n    // Step 4: Verify URL generation consistency\n    console.log('Step 4: Verifying URL generation consistency...');\n    const expectedSlug = generateSlug(testData.companyName);\n    const expectedUrl = `https://solarbookers.com/${expectedSlug}`;\n    \n    if (companySlug !== expectedSlug) {\n      throw new Error(`Slug mismatch: ${companySlug} vs ${expectedSlug}`);\n    }\n    \n    if (demoUrl !== expectedUrl) {\n      throw new Error(`URL mismatch: ${demoUrl} vs ${expectedUrl}`);\n    }\n    \n    console.log('URL generation consistency verified successfully');\n    \n    // All tests passed\n    console.log('\\n✅ All tests passed! The system is working correctly.');\n    return true;\n  } catch (error) {\n    console.error('\\n❌ Test failed:', error.message);\n    return false;\n  }\n}\n\n// Run the test\nrunE2ETest();\n```\n\n2. Create a webhook simulation endpoint for testing:\n\n```javascript\n// pages/api/test/simulate-webhook.js\nexport default async function handler(req, res) {\n  if (req.method !== 'POST') {\n    return res.status(405).json({ error: 'Method not allowed' });\n  }\n  \n  try {\n    // Simulate n8n webhook payload\n    const payload = req.body;\n    \n    // Call create-prototype endpoint\n    const createResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/create-prototype`, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify(payload)\n    });\n    \n    const createData = await createResponse.json();\n    \n    if (!createResponse.ok) {\n      throw new Error(`Failed to create prototype: ${createData.error || 'Unknown error'}`);\n    }\n    \n    // Simulate Instantly.ai email sending\n    const emailData = {\n      success: true,\n      emailSent: true,\n      demoUrl: createData.demoUrl,\n      recipient: payload.email || 'test@example.com'\n    };\n    \n    return res.status(200).json({\n      webhookSimulated: true,\n      createPrototypeResult: createData,\n      emailSimulation: emailData\n    });\n  } catch (error) {\n    console.error('Error simulating webhook:', error);\n    return res.status(500).json({ error: error.message });\n  }\n}\n```\n\n3. Create a test page to manually trigger the end-to-end test:\n\n```javascript\n// pages/admin/e2e-test.js\nimport { useState } from 'react';\nimport styles from '../../styles/E2ETest.module.css';\n\nexport default function E2ETestPage() {\n  const [testData, setTestData] = useState({\n    companyName: 'Test Solar Company',\n    email: 'test@example.com',\n    location: 'Austin, TX',\n    phone: '555-123-4567'\n  });\n  const [results, setResults] = useState(null);\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState(null);\n  \n  const runTest = async () => {\n    setLoading(true);\n    setError(null);\n    setResults(null);\n    \n    try {\n      const response = await fetch('/api/test/simulate-webhook', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(testData)\n      });\n      \n      const data = await response.json();\n      \n      if (!response.ok) {\n        throw new Error(data.error || 'Unknown error');\n      }\n      \n      setResults(data);\n    } catch (error) {\n      console.error('Error running test:', error);\n      setError(error.message);\n    } finally {\n      setLoading(false);\n    }\n  };\n  \n  return (\n    <div className={styles.container}>\n      <h1>End-to-End Test</h1>\n      \n      <div className={styles.testForm}>\n        <h2>Test Data</h2>\n        <div className={styles.formGroup}>\n          <label>Company Name:</label>\n          <input \n            value={testData.companyName} \n            onChange={(e) => setTestData({...testData, companyName: e.target.value})} \n          />\n        </div>\n        {/* Add other input fields */}\n        \n        <button \n          onClick={runTest} \n          disabled={loading}\n          className={styles.runButton}\n        >\n          {loading ? 'Running Test...' : 'Run End-to-End Test'}\n        </button>\n      </div>\n      \n      {error && (\n        <div className={styles.error}>\n          <h3>Error</h3>\n          <p>{error}</p>\n        </div>\n      )}\n      \n      {results && (\n        <div className={styles.results}>\n          <h3>Test Results</h3>\n          <div className={styles.resultCard}>\n            <h4>Demo URL</h4>\n            <p>\n              <a href={results.createPrototypeResult.demoUrl} target=\"_blank\" rel=\"noopener noreferrer\">\n                {results.createPrototypeResult.demoUrl}\n              </a>\n            </p>\n          </div>\n          \n          <div className={styles.resultCard}>\n            <h4>Email Simulation</h4>\n            <p>Recipient: {results.emailSimulation.recipient}</p>\n            <p>Demo URL included: {results.emailSimulation.demoUrl ? 'Yes' : 'No'}</p>\n          </div>\n          \n          <pre className={styles.jsonResults}>\n            {JSON.stringify(results, null, 2)}\n          </pre>\n        </div>\n      )}\n    </div>\n  );\n}\n```\n\n4. Add a GitHub Actions workflow for automated testing:\n\n```yaml\n# .github/workflows/e2e-test.yml\nname: End-to-End Tests\n\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\n\njobs:\n  e2e-test:\n    runs-on: ubuntu-latest\n    \n    steps:\n    - uses: actions/checkout@v3\n    \n    - name: Setup Node.js\n      uses: actions/setup-node@v3\n      with:\n        node-version: '18'\n        cache: 'npm'\n    \n    - name: Install dependencies\n      run: npm ci\n    \n    - name: Build application\n      run: npm run build\n    \n    - name: Start server\n      run: npm run start & npx wait-on http://localhost:3000\n      env:\n        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n        UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}\n        UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}\n        NEXT_PUBLIC_BASE_URL: http://localhost:3000\n    \n    - name: Run E2E tests\n      run: node scripts/e2e-test.js\n      env:\n        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n        UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}\n        UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}\n        NEXT_PUBLIC_BASE_URL: http://localhost:3000\n```",
+        "testStrategy": "Run the end-to-end test script in both development and production environments. Verify that all steps of the workflow complete successfully. Test with various company names and input data to ensure robustness. Validate that demo URLs are correctly generated and accessible. Confirm that chat functionality works correctly with the created assistants. Test the webhook simulation endpoint to verify it accurately mimics the n8n workflow.",
+        "priority": "medium",
+        "dependencies": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "status": "done",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-18T23:57:49.304Z",
+      "updated": "2025-07-19T00:23:16.967Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

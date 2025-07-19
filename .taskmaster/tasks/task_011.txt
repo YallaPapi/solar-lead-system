@@ -1,0 +1,61 @@
+# Task ID: 11
+# Title: Analyze N8N Workflow and Document Field Mappings
+# Status: pending
+# Dependencies: 9
+# Priority: high
+# Description: Analyze the n8n workflow JSON to understand the exact data flow and field mappings, documenting current vs. expected behavior at each integration point.
+# Details:
+Create a comprehensive analysis document that maps the n8n workflow fields to API expectations:
+
+1. Extract and analyze the n8n workflow JSON structure
+2. Document all field names used in the workflow
+3. Map these to the expected field names in the API endpoints
+4. Identify discrepancies in field naming or data formats
+5. Create a reference table for field mapping alignment
+
+Implementation steps:
+
+1. Export the complete n8n workflow JSON
+2. Parse the JSON to extract node configurations, especially for HTTP Request nodes
+3. Document the payload structure at each step of the workflow
+4. Compare with API endpoint expectations
+5. Create a mapping document with the following structure:
+
+```javascript
+// Field mapping documentation
+const fieldMappings = {
+  // N8N field name -> API expected field name
+  'company_name': 'companyName',
+  'contact_name': 'contactName',
+  'email_address': 'email',
+  'phone_number': 'phone',
+  'location_data': 'location',
+  // Add all other fields
+}
+
+// Data transformation examples
+const transformations = {
+  'location_data': (value) => {
+    // Example of how to transform n8n location format to API expected format
+    if (typeof value === 'object') {
+      return `${value.city}, ${value.state}`
+    }
+    return value
+  },
+  // Add other transformations
+}
+```
+
+Create a detailed flow diagram showing:
+1. Webhook trigger and data structure
+2. AI qualification step and data transformation
+3. Demo creation API call and payload
+4. Instantly.ai email integration and required fields
+5. Points of failure and proposed fixes
+
+# Test Strategy:
+1. Validate field mapping document against actual n8n workflow configuration
+2. Test data transformations with sample payloads from n8n
+3. Review with stakeholders to ensure all field mappings are correctly identified
+4. Create test cases for each identified discrepancy
+5. Verify that the documented transformations resolve the identified issues

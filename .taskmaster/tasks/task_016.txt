@@ -1,0 +1,157 @@
+# Task ID: 16
+# Title: Implement End-to-End Testing and Validation
+# Status: pending
+# Dependencies: 12, 13, 14, 15
+# Priority: medium
+# Description: Create comprehensive end-to-end tests to validate the complete workflow from n8n webhook to working chat interface, ensuring all components work together seamlessly.
+# Details:
+Develop an end-to-end testing framework that validates the entire workflow:
+
+1. Create automated tests that simulate the complete user journey
+2. Implement validation for each step of the process
+3. Add monitoring and logging for production issues
+4. Create a dashboard for system health visualization
+
+Implementation:
+
+```javascript
+// scripts/e2e-test.js
+import axios from 'axios'
+import { generateSlug } from '../lib/utils/slugify'
+
+/**
+ * Run a complete end-to-end test of the Solar Lead System workflow
+ * @param {object} testData - Test data for the workflow
+ * @returns {object} - Test results
+ */
+async function runE2ETest(testData = {
+  company_name: 'Test Solar Company E2E',
+  contact_name: 'John Tester',
+  email_address: 'test@example.com',
+  phone_number: '555-123-4567',
+  location_data: 'Test City, Test State'
+}) {
+  const results = {
+    steps: [],
+    success: false,
+    errors: []
+  }
+  
+  try {
+    // Step 1: Simulate n8n webhook
+    console.log('Step 1: Simulating n8n webhook...')
+    const webhookPayload = { data: testData }
+    
+    const webhookResponse = await axios.post(
+      `${process.env.BASE_URL}/api/webhook`,
+      webhookPayload
+    )
+    
+    results.steps.push({
+      name: 'webhook',
+      success: webhookResponse.status === 200,
+      data: webhookResponse.data
+    })
+    
+    if (webhookResponse.status !== 200) {
+      throw new Error(`Webhook failed with status ${webhookResponse.status}`)
+    }
+    
+    // Step 2: Verify demo creation
+    console.log('Step 2: Verifying demo creation...')
+    const expectedSlug = generateSlug(testData.company_name)
+    const demoUrl = `https://solarbookers.com/${expectedSlug}`
+    
+    // Wait for demo creation to complete (may take time in n8n workflow)
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    
+    // Check if company exists in Redis
+    const companyResponse = await axios.get(
+      `${process.env.BASE_URL}/api/company-assistant?slug=${expectedSlug}`
+    )
+    
+    results.steps.push({
+      name: 'demoCreation',
+      success: companyResponse.status === 200,
+      data: companyResponse.data
+    })
+    
+    if (companyResponse.status !== 200) {
+      throw new Error(`Demo creation failed: Company not found for slug ${expectedSlug}`)
+    }
+    
+    const assistantId = companyResponse.data.assistantId
+    
+    // Step 3: Test chat functionality
+    console.log('Step 3: Testing chat functionality...')
+    const chatResponse = await axios.post(
+      `${process.env.BASE_URL}/api/chat`,
+      {
+        slug: expectedSlug,
+        message: 'Hello, I am interested in solar panels.'
+      }
+    )
+    
+    results.steps.push({
+      name: 'chat',
+      success: chatResponse.status === 200 && chatResponse.data.message,
+      data: {
+        threadId: chatResponse.data.threadId,
+        messagePreview: chatResponse.data.message?.substring(0, 100) + '...'
+      }
+    })
+    
+    if (chatResponse.status !== 200 || !chatResponse.data.message) {
+      throw new Error('Chat functionality failed')
+    }
+    
+    // Step 4: Verify email was sent (would require Instantly.ai API integration)
+    // This is a placeholder for actual email verification
+    console.log('Step 4: Email verification would go here')
+    results.steps.push({
+      name: 'email',
+      success: true, // Placeholder
+      data: { note: 'Email verification requires Instantly.ai API integration' }
+    })
+    
+    // All steps completed successfully
+    results.success = true
+    console.log('E2E test completed successfully!')
+    
+  } catch (error) {
+    console.error('E2E test failed:', error)
+    results.success = false
+    results.errors.push({
+      message: error.message,
+      stack: error.stack
+    })
+  }
+  
+  return results
+}
+
+// Run the test if executed directly
+if (require.main === module) {
+  runE2ETest().then(results => {
+    console.log(JSON.stringify(results, null, 2))
+    process.exit(results.success ? 0 : 1)
+  })
+}
+
+export default runE2ETest
+```
+
+Create a monitoring dashboard at `/admin/monitoring` that displays:
+1. Recent test results
+2. System health metrics
+3. Error logs and trends
+4. Success rates for each integration point
+
+# Test Strategy:
+1. Run the end-to-end test suite in development, staging, and production environments
+2. Verify that all steps of the workflow complete successfully
+3. Test with various input data to ensure robust handling
+4. Validate that demo URLs are correctly generated and accessible
+5. Verify that chat functionality works end-to-end
+6. Test error recovery and handling throughout the workflow
+7. Set up automated scheduled runs of the E2E tests to monitor system health

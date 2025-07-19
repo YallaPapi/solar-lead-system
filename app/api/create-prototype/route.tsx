@@ -5,74 +5,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Enhanced slug generator that handles long company names
+// FIXED: Use exact same slug generator as n8n workflow
 function createCompanySlug(companyName: string): string {
-  // Remove common business suffixes first
-  const businessSuffixes = [
-    'LLC', 'Inc', 'Corporation', 'Corp', 'Limited', 'Ltd', 'Company', 'Co',
-    'Solutions', 'Services', 'Group', 'Partners', 'Associates', 'Enterprises',
-    'Technologies', 'Tech', 'Systems', 'Consulting', 'Holdings'
-  ];
-  
-  let cleanName = companyName;
-  
-  // Remove business suffixes (case insensitive)
-  businessSuffixes.forEach(suffix => {
-    const regex = new RegExp(`\\b${suffix}\\b`, 'gi');
-    cleanName = cleanName.replace(regex, '');
-  });
-  
-  // Clean and process
-  let slug = cleanName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-')         // Replace spaces with hyphens
-    .replace(/-+/g, '-')          // Replace multiple hyphens with single
-    .trim()                       // Remove leading/trailing spaces
-    .replace(/^-+|-+$/g, '');     // Remove leading/trailing hyphens
-  
-  // Handle very long names - keep only meaningful words
-  const words = slug.split('-').filter(word => word.length > 0);
-  
-  // If too many words, prioritize important ones
-  if (words.length > 3) {
-    // Keep words that are likely important (longer than 2 characters)
-    const importantWords = words.filter(word => word.length > 2);
-    
-    if (importantWords.length <= 3) {
-      slug = importantWords.join('-');
-    } else {
-      // Take first 3 important words
-      slug = importantWords.slice(0, 3).join('-');
-    }
-  }
-  
-  // Ensure final slug isn't too long (max 30 characters for clean URLs)
-  if (slug.length > 30) {
-    const truncatedWords = [];
-    let currentLength = 0;
-    
-    for (const word of words) {
-      if (currentLength + word.length + 1 <= 30) { // +1 for hyphen
-        truncatedWords.push(word);
-        currentLength += word.length + 1;
-      } else {
-        break;
-      }
-    }
-    
-    slug = truncatedWords.join('-');
-  }
-  
-  // Fallback if slug is empty or too short
-  if (slug.length < 3) {
-    slug = companyName
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .substring(0, 10);
-  }
-  
-  return slug;
+  return (companyName || 'demo').toLowerCase()
+    .replace(/\b(llc|inc|corp|ltd|co)\b/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 export async function POST(request: NextRequest) {
@@ -80,39 +20,38 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Received request body:', body);
 
-    // FIXED: Handle both the old format (for N8N) and new format (for other uses)
+    // FIXED: Handle n8n workflow field mappings exactly as they're sent
     let name, email, organization_name, title, city, state, organization_short_description, industry;
     let client_company_name, client_website, service_type;
 
-    // Check if this is coming from N8N (has contactName, companyName fields)
-    if (body.contactName || body.companyName) {
-      // N8N format
-      name = body.contactName || body.contactname || 'Prospect';
-      email = body.contactEmail || body.leadEmail || '';
-      organization_name = body.companyName || body.organization_name || '';
+    // FIXED: Check for exact n8n field names from the workflow
+    if (body.companyName || body.contactName || body.contactEmail) {
+      // Current test format (companyName, contactName, contactEmail)
+      name = body.contactName || 'Prospect';
+      email = body.contactEmail || '';
+      organization_name = body.companyName || '';
       title = body.title || '';
       city = body.location ? body.location.split(',')[0]?.trim() : '';
       state = body.location ? body.location.split(',')[1]?.trim() : '';
       organization_short_description = body.organization_short_description || '';
       industry = body.industry || '';
       
-      // Default values for N8N requests
       client_company_name = 'Solar Bookers';
       client_website = 'https://solarbookers.com';
-      service_type = 'Solar services';
+      service_type = 'Database reactivation services';
     } else {
-      // Original format
-      name = body.name;
-      email = body.email;
-      organization_name = body.organization_name;
-      title = body.title;
-      city = body.city;
-      state = body.state;
-      organization_short_description = body.organization_short_description;
-      industry = body.industry;
-      client_company_name = body.client_company_name;
-      client_website = body.client_website;
-      service_type = body.service_type || "Solar services";
+      // FIXED: Handle n8n actual workflow format (organization_name, lead_email, name)
+      name = body.name || (body.contactName || 'Prospect').split(' ')[0];
+      email = body.lead_email || body.email || body.contactEmail || '';
+      organization_name = body.organization_name || body.companyName || '';
+      title = body.title || '';
+      city = body.city || (body.location ? body.location.split(',')[0]?.trim() : '');
+      state = body.state || (body.location ? body.location.split(',')[1]?.trim() : '');
+      organization_short_description = body.organization_short_description || '';
+      industry = body.industry || '';
+      client_company_name = body.client_company_name || 'Solar Bookers';
+      client_website = body.client_website || 'https://solarbookers.com';
+      service_type = body.service_type || "Database reactivation services";
     }
 
     console.log('Processed fields:', { name, organization_name, client_company_name, client_website });
@@ -136,8 +75,8 @@ export async function POST(request: NextRequest) {
 
     // Create the assistant
     const assistant = await openai.beta.assistants.create({
-      name: `${organization_name} ${service_type} Demo Assistant`,
-      instructions: `Your job is to qualify leads over SMS for ${service_type}. You will complete your job by asking questions related to 'the qualified prospect' section. If a user doesn't follow the conversational direction, default to your SPIN selling training to keep them engaged. Always stay on topic and do not use conciliatory phrases ("Ah, I see", "I hear you", etc.) when the user expresses disinterest.
+      name: `${organization_name} Database Reactivation Demo Assistant`,
+      instructions: `Your job is to qualify leads over SMS for database reactivation services. You will complete your job by asking questions related to 'the qualified prospect' section. If a user doesn't follow the conversational direction, default to your SPIN selling training to keep them engaged. Always stay on topic and do not use conciliatory phrases ("Ah, I see", "I hear you", etc.) when the user expresses disinterest.
 
 ###
 PROSPECT INFORMATION:
@@ -151,14 +90,14 @@ PROSPECT INFORMATION:
 
 Your Output style: casual message, conversational, UK Idiom, British dialect
 ###
-Your training: The Challenger Sale, Solar Panels
+Your training: The Challenger Sale, Database Reactivation Services
 ###
-FIRST Message: "It's Sarah from ${client_company_name} here. Is this the same ${name} that got a ${service_type} quote from us in the last couple of months?"
+FIRST Message: "It's Sarah from ${client_company_name} here. Is this the same ${name} that got a database reactivation quote from us in the last couple of months?"
 ###
 Qualified prospect section:
-- If their response to the FIRST message is positive I want you to say EXACTLY this - "Thank goodness, my calendar just pinged me to call, but I didn't want to disturb you, are you still looking for help?" but if their response to the FIRST message was negative I want you to say EXACTLY this "Sorry about that, just to confirm, are you interested in installing Solar Panels?". If they have already answered the FIRST message, move on to the next part of this section. 
-- Get a rough average of their monthly utility bill(s). 
-- Tell them we can help them & will beat any market price then ask them if they'd like to schedule a callback.
+- If their response to the FIRST message is positive I want you to say EXACTLY this - "Thank goodness, my calendar just pinged me to call, but I didn't want to disturb you, are you still looking for help?" but if their response to the FIRST message was negative I want you to say EXACTLY this "Sorry about that, just to confirm, are you interested in database reactivation services?". If they have already answered the FIRST message, move on to the next part of this section. 
+- Find out roughly how many contacts are in their database and how long since they last contacted them.
+- Tell them we can help them reactivate 20-30% of dormant leads and turn them into revenue, then ask them if they'd like to schedule a callback to discuss their specific database.
 - If they say yes, send the following message - "Great! Here's my calendar for you to book in a time - ${dynamicCalendarLink}"
 
 Rules: 
@@ -173,7 +112,7 @@ Rules:
 
 ###
 Note: 
-- This is the message they're responding to: "It's Sarah from ${client_company_name} here. Is this the same ${name} that got a ${service_type} quote from us in the last couple of months?". Therefore, omit introductions & begin conversation.
+- This is the message they're responding to: "It's Sarah from ${client_company_name} here. Is this the same ${name} that got a database reactivation quote from us in the last couple of months?". Therefore, omit introductions & begin conversation.
 - Today's Date is ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
 ###
 FAQ:
@@ -181,7 +120,8 @@ FAQ:
 - Website: ${client_website}
 - They submitted an inquiry into our website a few months ago
 - Opening Hours are 9am to 5pm Monday to Friday.
-- We can help them get the very best solar panels and will do everything we can to not be beaten on price.
+- We help businesses reactivate dormant contacts in their database to generate immediate revenue from existing assets.
+- Our service typically achieves 20-30% reactivation rates on inactive leads.
 - If they ask where we got their details/data from you MUST tell them "You made an enquiry via our website, if you no longer wish to speak with us, reply with the word 'delete'"`,
       model: "gpt-4-1106-preview",
       tools: [{ type: "code_interpreter" }]
@@ -192,20 +132,16 @@ const host = request.headers.get('host') || 'solarbookers.com';
 const protocol = 'https';
 const demoUrl = `${protocol}://${host}/${companySlug}`;
 
-    // Store the assistant mapping for this company
+    // Store the assistant mapping for this company using direct Redis call
     try {
-      const storeResponse = await fetch(`https://solarbookers.com/api/company-assistant`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companySlug: companySlug,
-          assistantId: assistant.id
-        })
+      const { Redis } = await import('@upstash/redis');
+      const redis = new Redis({
+        url: process.env.KV_REST_API_URL!,
+        token: process.env.KV_REST_API_TOKEN!,
       });
       
-      if (!storeResponse.ok) {
-        console.log('Warning: Storage API returned error:', storeResponse.status);
-      }
+      await redis.set(`company:${companySlug}`, assistant.id);
+      console.log(`Successfully stored assistant ${assistant.id} for company ${companySlug} in Redis`);
     } catch (error) {
       console.log('Warning: Could not store assistant mapping:', error);
       // Don't fail the whole request if storage fails
@@ -219,7 +155,7 @@ const demoUrl = `${protocol}://${host}/${companySlug}`;
       demoUrl: demoUrl,       // Keep for backward compatibility
       companySlug: companySlug,
       calendarLink: dynamicCalendarLink,
-      message: `Solar demo assistant created for ${name} at ${organization_name}`
+      message: `Database reactivation demo assistant created for ${name} at ${organization_name}`
     };
 
     console.log('Returning response:', response);

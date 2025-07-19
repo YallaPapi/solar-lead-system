@@ -29,14 +29,14 @@ export default function CompanyDemoPage() {
         const data = await response.json();
         
         if (!data.success || !data.assistantId) {
-          throw new Error(`Demo not available`);
+          throw new Error(`Demo not available for company "${companySlug}". Error: ${data.error || 'Assistant not found'}`);
         }
         
         setAssistantId(data.assistantId);
         
         const openingMessage: Message = {
           id: 'opening',
-          text: `It's Sarah from Solar Bookers here. Is this the same person that got a solar quote from us in the last couple of months?`,
+          text: `It's Sarah from Solar Bookers here. Is this the same person that got a database reactivation quote from us in the last couple of months?`,
           sender: 'assistant',
           timestamp: new Date(),
         };
@@ -55,7 +55,11 @@ export default function CompanyDemoPage() {
   }, [companySlug]);
 
   const sendMessage = async () => {
-    if (!inputText.trim() || !assistantId || isLoading) return;
+    console.log('Send button clicked', { inputText: inputText.trim(), assistantId, isLoading });
+    if (!inputText.trim() || !assistantId || isLoading) {
+      console.log('Send message blocked:', { hasText: !!inputText.trim(), hasAssistant: !!assistantId, isLoading });
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -70,6 +74,7 @@ export default function CompanyDemoPage() {
     setIsLoading(true);
 
     try {
+      console.log('Making chat API call with:', { messageToSend, assistantId, threadId });
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +127,25 @@ export default function CompanyDemoPage() {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading SMS demo...</p>
+          <p className="text-gray-600">Loading database reactivation demo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Demo Not Available</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-sm text-blue-600">
+              <strong>Expected URL:</strong> https://solarbookers.com/test-solar<br/>
+              <strong>Your URL:</strong> https://solarbookers.com/{companySlug}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -134,8 +157,8 @@ export default function CompanyDemoPage() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">SMS Marketing Demo</h1>
-          <p className="text-gray-600">See how our AI assistant engages {companyName} leads via text messaging</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Database Reactivation Demo</h1>
+          <p className="text-gray-600">See how our AI assistant reengages dormant leads for {companyName} via text messaging</p>
         </div>
 
         {/* iPhone SMS Interface - CENTERED */}
@@ -263,12 +286,12 @@ export default function CompanyDemoPage() {
                 <p className="text-green-600 text-xs">Watch it handle objections</p>
               </div>
               <div className="bg-purple-50 p-3 rounded">
-                <p className="font-medium text-purple-800">Try: "how much?"</p>
+                <p className="font-medium text-purple-800">Try: "how much does it cost?"</p>
                 <p className="text-purple-600 text-xs">See pricing objection handling</p>
               </div>
               <div className="bg-orange-50 p-3 rounded">
-                <p className="font-medium text-orange-800">Try: "schedule call"</p>
-                <p className="text-orange-600 text-xs">Watch it book appointments</p>
+                <p className="font-medium text-orange-800">Try: "I have 5000 contacts"</p>
+                <p className="text-orange-600 text-xs">Watch database assessment</p>
               </div>
             </div>
           </div>

@@ -1,0 +1,151 @@
+# Task ID: 14
+# Title: Fix Redis Connection and Assistant Mappings
+# Status: pending
+# Dependencies: 9, 12
+# Priority: medium
+# Description: Resolve Redis connection issues and improve key storage/retrieval for company-assistant mappings to ensure reliable demo site loading.
+# Details:
+Enhance Redis integration for reliable assistant mapping storage and retrieval:
+
+1. Implement robust Redis connection handling with retry logic
+2. Standardize key naming conventions for company-assistant mappings
+3. Add TTL (time-to-live) for Redis keys to prevent stale data
+4. Implement caching layer to reduce Redis calls
+
+Implementation:
+
+```javascript
+// lib/redis.js
+import { Redis } from '@upstash/redis'
+
+// Redis client with connection retry logic
+let redisClient = null
+
+/**
+ * Get Redis client with connection retry
+ * @returns {Redis} Connected Redis client
+ */
+export async function getRedisClient() {
+  if (redisClient) return redisClient
+  
+  try {
+    redisClient = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+    
+    // Test connection
+    await redisClient.ping()
+    return redisClient
+  } catch (error) {
+    console.error('Redis connection error:', error)
+    redisClient = null
+    throw new Error(`Failed to connect to Redis: ${error.message}`)
+  }
+}
+
+// Key naming convention
+const keyPrefix = 'solar-lead:'
+const companyKeyPrefix = `${keyPrefix}company:`
+
+/**
+ * Store company-assistant mapping
+ * @param {string} slug - Company slug
+ * @param {object} data - Company and assistant data
+ * @param {number} ttl - Time to live in seconds (default: 30 days)
+ */
+export async function storeCompanyAssistant(slug, data, ttl = 60 * 60 * 24 * 30) {
+  const redis = await getRedisClient()
+  const key = `${companyKeyPrefix}${slug}`
+  
+  // Store with TTL
+  await redis.set(key, JSON.stringify({
+    ...data,
+    updatedAt: new Date().toISOString()
+  }), { ex: ttl })
+  
+  // Also store a reverse lookup by assistant ID
+  if (data.assistantId) {
+    await redis.set(
+      `${keyPrefix}assistant:${data.assistantId}`, 
+      slug,
+      { ex: ttl }
+    )
+  }
+}
+
+/**
+ * Retrieve company-assistant mapping
+ * @param {string} slug - Company slug
+ * @returns {object|null} Company data or null if not found
+ */
+export async function getCompanyAssistant(slug) {
+  try {
+    const redis = await getRedisClient()
+    const key = `${companyKeyPrefix}${slug}`
+    const data = await redis.get(key)
+    
+    if (!data) return null
+    
+    return JSON.parse(data)
+  } catch (error) {
+    console.error(`Error retrieving company data for ${slug}:`, error)
+    return null
+  }
+}
+
+/**
+ * Find company by assistant ID
+ * @param {string} assistantId - OpenAI Assistant ID
+ * @returns {string|null} Company slug or null if not found
+ */
+export async function getCompanyByAssistantId(assistantId) {
+  try {
+    const redis = await getRedisClient()
+    return await redis.get(`${keyPrefix}assistant:${assistantId}`)
+  } catch (error) {
+    console.error(`Error finding company for assistant ${assistantId}:`, error)
+    return null
+  }
+}
+```
+
+Update the company assistant API endpoint to use the enhanced Redis utilities:
+
+```javascript
+// pages/api/company-assistant.js
+import { getCompanyAssistant } from '../../lib/redis'
+
+export default async function handler(req, res) {
+  const { slug } = req.query
+  
+  if (!slug) {
+    return res.status(400).json({ error: 'Company slug is required' })
+  }
+  
+  try {
+    const companyData = await getCompanyAssistant(slug)
+    
+    if (!companyData) {
+      return res.status(404).json({ error: 'Company not found' })
+    }
+    
+    return res.status(200).json({
+      success: true,
+      company: companyData.companyName,
+      assistantId: companyData.assistantId
+    })
+  } catch (error) {
+    console.error('Error retrieving company assistant:', error)
+    return res.status(500).json({ error: 'Failed to retrieve company data' })
+  }
+}
+```
+
+# Test Strategy:
+1. Test Redis connection with both valid and invalid credentials
+2. Verify data persistence by storing and retrieving company-assistant mappings
+3. Test TTL functionality to ensure keys expire as expected
+4. Validate reverse lookup functionality (assistant ID to company)
+5. Test error handling and recovery from Redis connection failures
+6. Benchmark Redis operations to ensure performance meets requirements

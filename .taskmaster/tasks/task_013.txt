@@ -1,0 +1,67 @@
+# Task ID: 13
+# Title: Align URL Generation Algorithm
+# Status: pending
+# Dependencies: 11, 12
+# Priority: high
+# Description: Ensure URL generation is consistent between n8n and API by implementing a standardized slug generation algorithm across all components.
+# Details:
+Create a unified URL generation utility that ensures consistency across all system components:
+
+1. Extract the current URL generation logic from both n8n workflow and API endpoints
+2. Create a standardized utility function for slug generation
+3. Update all components to use this unified approach
+4. Ensure proper handling of special characters and edge cases
+
+Implementation:
+
+```javascript
+// lib/utils/slugify.js
+/**
+ * Generates a consistent URL slug from a company name
+ * @param {string} companyName - The company name to slugify
+ * @return {string} The generated slug
+ */
+export function generateSlug(companyName) {
+  if (!companyName) throw new Error('Company name is required for slug generation')
+  
+  // Convert to lowercase
+  let slug = companyName.toLowerCase()
+  
+  // Replace special characters with hyphens
+  slug = slug.replace(/[^a-z0-9]+/g, '-')
+  
+  // Remove leading and trailing hyphens
+  slug = slug.replace(/^-+|-+$/g, '')
+  
+  // Ensure slug is not empty
+  if (!slug) slug = 'company'
+  
+  return slug
+}
+
+/**
+ * Generates a full demo URL from a company name
+ * @param {string} companyName - The company name
+ * @return {string} The complete demo URL
+ */
+export function generateDemoUrl(companyName) {
+  const slug = generateSlug(companyName)
+  return `https://solarbookers.com/${slug}`
+}
+```
+
+Update all relevant components to use this utility:
+
+1. Modify `/api/create-prototype` to use the standardized slug generation
+2. Update any client-side URL generation code
+3. Document the expected URL format for n8n workflow configuration
+4. Create a reference implementation for n8n to ensure consistency
+
+Add validation to ensure URLs are properly formed and accessible.
+
+# Test Strategy:
+1. Create test cases with various company names including special characters, spaces, and edge cases
+2. Verify that the same input consistently produces the same slug across all components
+3. Test URL generation with international characters and ensure proper handling
+4. Validate that generated URLs are valid and accessible
+5. Create a test suite that compares n8n-generated URLs with API-generated URLs to ensure consistency

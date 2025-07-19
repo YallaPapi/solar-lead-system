@@ -1,0 +1,74 @@
+# Solar Lead System - N8N Workflow Integration Fix
+
+<context>
+# Overview  
+The Solar Lead System has an n8n workflow that automatically replies to interested leads with demonstration links. The system is failing at three critical points: emails sent via Instantly.ai are missing demo links, demo sites don't load when links are present, and AI chat functionality throws errors during interactions.
+
+# Current System Analysis
+- **N8N Workflow**: Processes webhooks, qualifies leads with AI, creates demos via API, sends emails via Instantly.ai
+- **API Endpoints**: `/api/create-prototype` creates assistants, `/api/company-assistant` stores mappings, `/api/chat` handles conversations
+- **Tech Stack**: Next.js 15.4.1, Vercel deployment, Upstash Redis, OpenAI Assistants API
+- **Domain**: solarbookers.com with dynamic company slug URLs
+
+# Core Issues  
+- **Issue 1**: Instantly.ai emails missing demo links - field mapping mismatch between n8n payload and API expectations
+- **Issue 2**: Demo sites failing to load - Redis lookup failures, assistant creation problems, or environment issues
+- **Issue 3**: AI chat errors - OpenAI threading issues, timeout problems, or API integration failures
+
+# User Experience Impact
+- **Lead Response Flow**: Webhook → AI qualification → Demo creation → Email with link → Prospect clicks → Chat interface
+- **Current Failure Points**: Links missing from emails, broken demo pages, non-functional chat
+- **Business Impact**: Lost qualified leads, poor first impressions, reduced conversion rates
+</context>
+
+<PRD>
+# Technical Architecture Fix Requirements
+- **Field Mapping Alignment**: N8N workflow sends specific field names that must match API expectations exactly
+- **URL Generation Consistency**: Demo URL generation must be identical between n8n provisional URLs and API-generated URLs  
+- **Error Handling**: Comprehensive debugging and error tracking for each integration point
+- **Environment Validation**: Verify Redis connections, OpenAI API keys, and Vercel deployment configuration
+
+# Development Roadmap  
+
+## Phase 1: Analysis and Debugging Infrastructure
+- Create comprehensive debug endpoint to test Redis, OpenAI, and environment configuration
+- Build test suite page to validate each integration point independently
+- Analyze n8n workflow JSON to understand exact data flow and field mappings
+- Document current vs. expected behavior at each step
+
+## Phase 2: Field Mapping and URL Generation Fixes
+- Fix API endpoints to handle exact field names from n8n workflow payload
+- Align slug generation algorithm between n8n and API to ensure URL consistency
+- Update data parsing logic to handle n8n's location format and field structure
+- Validate URL generation produces working demo links
+
+## Phase 3: Redis and OpenAI Integration Stability
+- Fix Redis connection and key storage/retrieval for company-assistant mappings
+- Resolve OpenAI threading and timeout issues in chat API
+- Improve error handling and retry logic for API failures
+- Add comprehensive logging for debugging workflow failures
+
+## Phase 4: End-to-End Testing and Validation
+- Test complete workflow from n8n webhook to working chat interface
+- Validate Instantly.ai email integration includes correct demo links
+- Verify demo pages load correctly with proper assistant associations
+- Confirm AI chat functionality works without errors
+
+# Logical Dependency Chain
+1. **Debug Infrastructure**: Must be able to diagnose issues before fixing them
+2. **Field Mapping**: Core data flow must work before advanced features
+3. **URL Generation**: Demo links must be valid before testing chat functionality  
+4. **Redis/OpenAI Integration**: Data persistence and AI functionality must be stable
+5. **End-to-End Validation**: Complete workflow testing to ensure all components work together
+
+# Risks and Mitigations  
+- **Environment Variables**: Missing or incorrect API keys could cause failures - validate all credentials
+- **API Rate Limits**: OpenAI/Redis rate limits could cause intermittent failures - implement proper retry logic
+- **Vercel Deployment**: Server/client-side rendering issues could affect functionality - test in production environment
+- **N8N Workflow Changes**: Updates to workflow could break integration - maintain exact field mapping compatibility
+
+# Appendix  
+- **N8N Workflow JSON**: Complete workflow structure showing data flow and field mappings
+- **API Endpoint Documentation**: Current implementation details and expected improvements
+- **Error Log Analysis**: Common failure patterns and debugging information
+- **Testing Scenarios**: Comprehensive test cases for validating fixes 
