@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export async function GET(request: NextRequest) {
+  return POST(request); // Reuse the POST logic for GET testing
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Use the new domain detection utility
@@ -29,6 +33,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Test demo created successfully',
       currentDomain,
+      detectedHost: host,
       result: data
     });
 
