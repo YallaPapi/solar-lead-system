@@ -27,15 +27,56 @@ export default function CompanyPage() {
   }, [messages]);
 
   useEffect(() => {
-    if (company) {
-      const welcomeMessage: Message = {
-        role: 'assistant',
-        content: `Hi! I'm here to help you learn about solar options for ${company}. What questions do you have about solar energy?`,
-        timestamp: new Date()
-      };
-      setMessages([welcomeMessage]);
+    // Automatically start the conversation with the OpenAI assistant
+    if (company && messages.length === 0) {
+      startConversation();
     }
   }, [company]);
+
+  const startConversation = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: "START_CONVERSATION", // Trigger the assistant to send opening message
+          threadId: null,
+          company: company
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.threadId) {
+        setThreadId(data.threadId);
+      }
+
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.message || 'Hi there! How can I help you today?',
+        timestamp: new Date()
+      };
+
+      setMessages([assistantMessage]);
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Hi there! How can I help you today?',
+        timestamp: new Date()
+      };
+      setMessages([errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
