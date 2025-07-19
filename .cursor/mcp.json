@@ -16,6 +16,16 @@
                 "DEFAULT_SUBTASKS": "5",
                 "DEFAULT_PRIORITY": "medium"
             }
+        },
+        "knowledge-graph": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@itseasy21/mcp-knowledge-graph"
+            ],
+            "env": {
+                "KNOWLEDGE_GRAPH_STORAGE_PATH": "./.knowledge-graph"
+            }
         }
     }
 } 
