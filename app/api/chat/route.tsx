@@ -20,10 +20,6 @@ export async function POST(request: NextRequest) {
 
     const { assistantId, message, threadId } = await request.json();
     console.log('Chat API called with:', { assistantId, message, threadId });
-    console.log('Environment check:', { 
-      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-      keyLength: process.env.OPENAI_API_KEY?.length || 0 
-    });
 
     if (!assistantId || !message) {
       console.error('Missing required fields:', { assistantId: !!assistantId, message: !!message });
@@ -39,6 +35,13 @@ export async function POST(request: NextRequest) {
       console.log('Creating new thread...');
       try {
         const thread = await openai.beta.threads.create();
+        if (!thread || !thread.id) {
+          console.error('Thread creation failed - no ID returned:', thread);
+          return NextResponse.json(
+            { error: 'Failed to create conversation thread' },
+            { status: 500 }
+          );
+        }
         currentThreadId = thread.id;
         console.log('Successfully created thread:', currentThreadId);
       } catch (createError) {
@@ -50,11 +53,11 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Validate thread ID before proceeding
-    if (!currentThreadId) {
-      console.error('Thread ID is still undefined after creation');
+    // Final validation of thread ID
+    if (!currentThreadId || typeof currentThreadId !== 'string') {
+      console.error('Thread ID is invalid:', currentThreadId);
       return NextResponse.json(
-        { error: 'Failed to create or get thread ID' },
+        { error: 'Invalid thread ID' },
         { status: 500 }
       );
     }
@@ -63,65 +66,95 @@ export async function POST(request: NextRequest) {
 
     // Add user message to thread
     console.log('Adding message to thread:', currentThreadId);
-    await openai.beta.threads.messages.create(currentThreadId, {
-      role: 'user',
-      content: message
-    });
+    try {
+      await openai.beta.threads.messages.create(currentThreadId, {
+        role: 'user',
+        content: message
+      });
+      console.log('Message added successfully');
+    } catch (messageError) {
+      console.error('Failed to add message to thread:', messageError);
+      return NextResponse.json(
+        { error: 'Failed to add message to thread', threadId: currentThreadId },
+        { status: 500 }
+      );
+    }
 
     // Create and run the assistant
     console.log('Creating run with assistant:', assistantId, 'on thread:', currentThreadId);
-    const run = await openai.beta.threads.runs.create(currentThreadId, {
-      assistant_id: assistantId
-    });
-    console.log('Run created:', run.id);
-    console.log('Run object:', { id: run.id, status: run.status, threadId: currentThreadId });
+    let run;
+    try {
+      run = await openai.beta.threads.runs.create(currentThreadId, {
+        assistant_id: assistantId
+      });
+      console.log('Run created:', run.id);
+    } catch (runError) {
+      console.error('Failed to create run:', runError);
+      return NextResponse.json(
+        { error: 'Failed to create assistant run', threadId: currentThreadId },
+        { status: 500 }
+      );
+    }
 
-    // Wait for completion - THE FIX IS HERE
+    // Wait for completion with better error handling
     let runStatus = run;
     let attempts = 0;
+    const maxAttempts = 30;
     
-    while ((runStatus.status === 'queued' || runStatus.status === 'in_progress') && attempts < 30) {
+    while ((runStatus.status === 'queued' || runStatus.status === 'in_progress') && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log(`Attempt ${attempts + 1}: Status ${runStatus.status}, ThreadID: ${currentThreadId}, RunID: ${run.id}`);
+      console.log(`Attempt ${attempts + 1}: Status ${runStatus.status}`);
       
-      // Validate parameters before API call
-      if (!currentThreadId || !run.id) {
-        console.error('Missing parameters for run retrieval:', { currentThreadId, runId: run.id });
-        throw new Error('Missing thread ID or run ID for status check');
+             try {
+         // @ts-ignore - OpenAI SDK typing issue with retrieve method
+         runStatus = await openai.beta.threads.runs.retrieve(
+           currentThreadId,
+           run.id
+         );
+         attempts++;
+       } catch (retrieveError) {
+        console.error('Failed to retrieve run status:', retrieveError);
+        return NextResponse.json(
+          { error: 'Failed to check run status', threadId: currentThreadId },
+          { status: 500 }
+        );
       }
-      
-      // Only retrieve the latest status - bypass TypeScript issue
-      // @ts-ignore - OpenAI typing inconsistency  
-      const latestRun = await openai.beta.threads.runs.retrieve(
-        currentThreadId,
-        run.id
-      );
-      runStatus = latestRun;
-      attempts++;
     }
 
     console.log('Final run status:', runStatus.status);
 
     if (runStatus.status === 'completed') {
-      const messages = await openai.beta.threads.messages.list(currentThreadId);
-      const latestMessage = messages.data[0];
-      
-      if (latestMessage && latestMessage.role === 'assistant') {
-        const content = latestMessage.content[0];
-        if (content && content.type === 'text') {
-          console.log('SUCCESS! Response:', content.text.value);
+      try {
+        const messages = await openai.beta.threads.messages.list(currentThreadId);
+        const latestMessage = messages.data.find(msg => msg.role === 'assistant');
+        
+        if (latestMessage && latestMessage.content[0] && latestMessage.content[0].type === 'text') {
+          console.log('SUCCESS! Response received');
           return NextResponse.json({
             success: true,
-            response: content.text.value,
+            response: latestMessage.content[0].text.value,
             threadId: currentThreadId
           });
+        } else {
+          console.error('No valid assistant response found');
+          return NextResponse.json(
+            { error: 'No valid response from assistant', threadId: currentThreadId },
+            { status: 500 }
+          );
         }
+      } catch (messageRetrieveError) {
+        console.error('Failed to retrieve messages:', messageRetrieveError);
+        return NextResponse.json(
+          { error: 'Failed to retrieve assistant response', threadId: currentThreadId },
+          { status: 500 }
+        );
       }
     }
 
+    // Handle non-completed status
     console.error('Run failed with status:', runStatus.status);
     return NextResponse.json(
-      { error: `Assistant run failed: ${runStatus.status}` },
+      { error: `Assistant run failed: ${runStatus.status}`, threadId: currentThreadId },
       { status: 500 }
     );
 
