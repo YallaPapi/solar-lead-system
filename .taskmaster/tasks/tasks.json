@@ -381,8 +381,8 @@
             "dependencies": [
               3
             ],
-            "details": "Review and refactor the chat API code to use the latest OpenAI API thread management methods. Implement robust error handling and support for streaming responses as recommended by OpenAI.",
-            "status": "pending",
+            "details": "Review and refactor the chat API code to use the latest OpenAI API thread management methods. Implement robust error handling and support for streaming responses as recommended by OpenAI.\n<info added on 2025-07-19T01:10:33.483Z>\nRoot cause identified: The /test-solar demo is using an outdated assistant created before domain fixes were implemented. To resolve this issue, we need to create a fresh demo with the new domain detection logic and test chat functionality on this new instance instead of continuing to troubleshoot the broken old demo. \n\nThe plan is to:\n1. Create a new demo manually via the API\n2. Implement the updated domain detection logic in this fresh demo\n3. Test chat functionality on the new demo to verify proper operation\n4. Document the process to ensure future demos are created with the correct configuration\n\nThis approach will allow us to validate that our latest code changes work correctly with a clean implementation rather than trying to fix compatibility issues with the outdated demo.\n</info added on 2025-07-19T01:10:33.483Z>",
+            "status": "in-progress",
             "testStrategy": "Test chat functionality end-to-end in a preview deployment, including thread creation, message exchange, and error handling."
           },
           {
@@ -401,7 +401,7 @@
     ],
     "metadata": {
       "created": "2025-07-18T23:57:49.304Z",
-      "updated": "2025-07-19T01:03:26.810Z",
+      "updated": "2025-07-19T01:09:57.472Z",
       "description": "Tasks for master context"
     }
   }
